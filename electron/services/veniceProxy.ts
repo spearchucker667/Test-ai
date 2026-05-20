@@ -87,7 +87,9 @@ export async function startVeniceProxy(): Promise<number> {
       return res.status(405).json({ error: "Method not allowed." });
     }
     // Strict path matching — req.path excludes the query string in Express,
-    // so this correctly allows /models?type=all while blocking /models/anything.
+    // so /models?type=all is correctly allowed as req.path === "/models".
+    // Trailing slashes and sub-paths (e.g. /models/) are intentionally blocked;
+    // the Venice API endpoints we proxy all use the exact paths above.
     if (!ALLOWED_PATHS.includes(req.path)) {
       return res.status(403).json({ error: `Endpoint ${req.path} is not allowed.` });
     }
