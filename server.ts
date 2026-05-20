@@ -12,9 +12,21 @@ async function startServer() {
   const PORT = Number(process.env.PORT || 3000);
 
   // Simple Rate Limiting
-  const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
+  const parsedRateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS);
+  const rateLimitWindowMs = Number.isFinite(parsedRateLimitWindowMs) && parsedRateLimitWindowMs > 0
+    ? parsedRateLimitWindowMs
+    : 60000;
   const rateLimitMax = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 60);
   const reqCounts = new Map<string, { count: number; resetTime: number }>();
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [ip, record] of reqCounts.entries()) {
+      if (now > record.resetTime) {
+        reqCounts.delete(ip);
+      }
+    }
+  }, Math.max(10000, rateLimitWindowMs)).unref();
 
   app.use("/api/venice", (req, res, next) => {
     if (!process.env.VENICE_API_KEY) {
@@ -51,7 +63,7 @@ async function startServer() {
     }
     
     // Check if path matches any allowed endpoint
-    const isAllowed = ALLOWED_ENDPOINTS.some(endpoint => req.path.startsWith(endpoint) || req.path === endpoint);
+    const isAllowed = ALLOWED_ENDPOINTS.includes(req.path);
     if (!isAllowed && req.path !== "/") {
        return res.status(403).json({ error: `Endpoint ${req.path} not allowed` });
     }
@@ -80,9 +92,13 @@ async function startServer() {
             "Authorization",
             `Bearer ${process.env.VENICE_API_KEY}`
           );
-          if (req.body && Buffer.isBuffer(req.body)) {
+          if (req.method !== "GET" && req.body && Buffer.isBuffer(req.body)) {
+            proxyReq.removeHeader("Transfer-Encoding");
             proxyReq.setHeader("Content-Length", req.body.length);
             proxyReq.write(req.body);
+          } else if (req.method === "GET") {
+            proxyReq.removeHeader("Content-Length");
+            proxyReq.removeHeader("Transfer-Encoding");
           }
         },
         error: (err: any, req: any, res: any) => {
