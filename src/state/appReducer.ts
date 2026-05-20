@@ -52,7 +52,7 @@ export function flattenModels(payload: any) {
 }
 
 export function withFallbackModels(groups: Record<string, any[]>) {
-  const next = {
+  const next: Record<string, any[]> = {
     text: [],
     image: [],
     audio: [],
@@ -68,7 +68,7 @@ export function withFallbackModels(groups: Record<string, any[]>) {
 
 export const initialState = {
   activeTab: "chat",
-  models: withFallbackModels({}),
+  models: withFallbackModels({}) as Record<string, import("../types/venice").ModelInfo[]>,
   usingFallbackModels: true,
   selectedChatModel: "venice-uncensored",
   selectedImageModel: "fluently-xl",
@@ -109,6 +109,11 @@ export const initialState = {
     promptsText:
       "Explain quantum computing in one sentence.\nWrite a haiku about a robot.\nWhat is the capital of France?",
   },
+  chatDraft: {
+    systemPrompt: DEFAULT_SYSTEM_PROMPT,
+    messages: [] as import("../types/app").ChatRecord[],
+  },
+  toasts: [] as import("../types/app").ToastMessage[],
 };
 
 export function appReducer(state: typeof initialState, action: any) {
@@ -152,6 +157,11 @@ export function appReducer(state: typeof initialState, action: any) {
       return { ...state, chats: action.items || [] };
     case "TOGGLE_SOURCE_PANEL":
       return { ...state, sourcePanelOpen: !state.sourcePanelOpen };
+    case "SET_CHAT_DRAFT":
+      return {
+        ...state,
+        chatDraft: { ...state.chatDraft, ...action.patch },
+      };
     case "SET_IMAGE_DRAFT":
       return {
         ...state,
@@ -162,6 +172,10 @@ export function appReducer(state: typeof initialState, action: any) {
         ...state,
         batchDraft: { ...state.batchDraft, ...action.patch },
       };
+    case "ADD_TOAST":
+      return { ...state, toasts: [...state.toasts, action.toast] };
+    case "REMOVE_TOAST":
+      return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) };
     default:
       return state;
   }

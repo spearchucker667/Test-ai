@@ -1,25 +1,63 @@
 import React, { useState, useRef, useEffect } from "react";
 import StorageService from "../services/storageService";
 import { veniceFetch } from "../services/veniceClient";
-import { extractImages, stripDataUrlPrefix, galleryFilename } from "../utils/image";
-import { downloadDataUrl } from "../utils/download";
+import { extractImages, galleryFilename } from "../utils/image";
+import { downloadImage } from "../utils/download";
+import { upscaleGalleryImage, saveImageRecord as saveRecordService, refreshGallery } from "../services/imageWorkflowService";
 import { Field } from "../components/Field";
 import { ModelSelect } from "../components/ModelSelect";
 import { DiagPreview } from "../components/DiagnosticsPreview";
 import { StatusBlock } from "../components/StatusBlock";
-import { Chip } from "../components/Chip";
+import { ImageActionModal } from "../components/ImageActionModal";
+import { AppState, AppDispatch } from "../types/app";
+import { GalleryImage } from "../types/storage";
+import { CollapsibleSection } from "../components/CollapsibleSection";
 
-export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) {
+export function ImageModule({ state, dispatch }: { state: AppState; dispatch: AppDispatch }) {
   const draft = state.imageDraft;
   const [loading, setLoading] = useState(false);
   const [upscaling, setUpscaling] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [expanded, setExpanded] = useState<any>(null);
+  const [expanded, setExpanded] = useState<GalleryImage | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const recentHistory = React.useMemo(() => {
+    const map = new Map<string, GalleryImage>();
+    // Sort array by timestamp descending so we get the newest
+    // assuming it might not be sorted.
+    const sorted = [...state.gallery].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    sorted.forEach((img) => {
+      if (img.prompt) {
+        const key = img.prompt.trim().toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, img);
+        }
+      }
+    });
+    return Array.from(map.values()).slice(0, 10);
+  }, [state.gallery]);
 
   function patch(updates: any) {
     dispatch({ type: "SET_IMAGE_DRAFT", patch: updates });
+  }
+
+  function loadPromptAndSettings(img: GalleryImage) {
+    if (img.model) {
+      dispatch({ type: "SET_SELECTED_IMAGE_MODEL", model: img.model });
+    }
+    patch({
+      prompt: img.prompt,
+      negative: img.negative || "",
+      width: img.width ? Number(img.width) : draft.width,
+      height: img.height ? Number(img.height) : draft.height,
+      aspectRatio: img.aspectRatio || draft.aspectRatio,
+      style: img.style || "",
+      cfg: img.cfg || draft.cfg,
+      steps: img.steps || draft.steps,
+      safeMode: img.safeMode ?? draft.safeMode
+    });
+    dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Loaded prompt and settings", type: "info" } });
   }
 
   useEffect(() => {
@@ -44,137 +82,93 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
     };
   }, []);
 
-  useEffect(() => {
-    if (expanded) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [expanded]);
-
-  async function saveImageRecord(record: any) {
-    const saved = await StorageService.saveItem("images", {
-      id: record.id || crypto.randomUUID(),
-      image: record.image,
-      prompt: record.prompt || "",
-      negative: record.negative || "",
-      model: record.model || "",
-      width: record.width || null,
-      height: record.height || null,
-      aspectRatio: record.aspectRatio || "",
-      style: record.style || "",
-      cfg: record.cfg || null,
-      steps: record.steps || null,
-      safeMode: !!record.safeMode,
-      upscaled: !!record.upscaled,
-      parentId: record.parentId || null,
-      timestamp: record.timestamp || Date.now(),
-      batchId: record.batchId || null,
-      batchIndex: record.batchIndex || null,
-      batchCount: record.batchCount || null,
-      disableWatermark: record.disableWatermark ?? true,
-    });
-    const items = await StorageService.getItems("images");
-    dispatch({ type: "SET_GALLERY", items });
-    return saved;
-  }
-
-  async function upscaleGalleryImage(item: any) {
-    if (!item?.image) throw new Error("No image selected for upscaling.");
-    if (/^https?:\/\//i.test(item.image))
-      throw new Error(
-        "Upscale requires base64/data URL image data, not a remote URL."
-      );
-
-    const cleanB64 = stripDataUrlPrefix(item.image);
-    const { data } = await veniceFetch("/image/upscale", {
-      method: "POST",
-      body: { image: cleanB64, scale: 2 },
-      dispatch,
-      retry: true,
-    });
-
-    const upscaledImage = data?.dataUrl || extractImages(data)[0];
-    if (!upscaledImage)
-      throw new Error("Upscale response did not contain detectable image data.");
-
-    return await saveImageRecord({
-      ...item,
-      id: crypto.randomUUID(),
-      image: upscaledImage,
-      upscaled: true,
-      parentId: item.id,
-      timestamp: Date.now(),
-    });
-  }
-
   async function generate() {
     if (!draft.prompt.trim() || loading) return;
     setError("");
     setSuccess("");
     setLoading(true);
     abortRef.current = new AbortController();
+    const signal = abortRef.current.signal;
 
     const batchCount = Number(draft.imageCount) || 1;
     const batchId = crypto.randomUUID();
     let successCount = 0;
     const IMAGE_BATCH_INTER_REQUEST_DELAY_MS = 750;
-    const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
+    const delay = (ms: number, sig: AbortSignal) => new Promise<void>((resolve, reject) => {
+      if (sig.aborted) return reject(new DOMException("Request aborted", "AbortError"));
+      const timeout = setTimeout(resolve, ms);
+      sig.addEventListener('abort', () => {
+        clearTimeout(timeout);
+        reject(new DOMException("Request aborted", "AbortError"));
+      }, { once: true });
+    });
 
     patch({ 
       generationProgress: batchCount > 1 ? `Queued ${batchCount} images` : "",
       currentImages: [] 
     });
 
-    const payload: any = {
-      model: state.selectedImageModel,
-      prompt: draft.prompt.trim(),
-      width: Number(draft.width),
-      height: Number(draft.height),
-      aspect_ratio: draft.aspectRatio,
-      steps: Number(draft.steps),
-      cfg_scale: Number(draft.cfg),
-      safe_mode: !!draft.safeMode,
-      hide_watermark: !!draft.disableWatermark,
-      return_binary: false,
-    };
-    if (draft.negative.trim()) payload.negative_prompt = draft.negative.trim();
-    if (draft.style) payload.style_preset = draft.style;
-
     try {
       const newImages = [];
       for (let i = 0; i < batchCount; i++) {
-        if (abortRef.current.signal.aborted) throw new Error("AbortError");
+        if (signal.aborted) throw new DOMException("Request aborted", "AbortError");
         
         if (batchCount > 1 && i > 0) {
           patch({ generationProgress: `Waiting before next request to respect rate limits...` });
-          await delay(IMAGE_BATCH_INTER_REQUEST_DELAY_MS);
-          if (abortRef.current.signal.aborted) throw new Error("AbortError");
+          await delay(IMAGE_BATCH_INTER_REQUEST_DELAY_MS, signal);
         }
         
         if (batchCount > 1) {
           patch({ generationProgress: `Generating image ${i + 1} of ${batchCount}...` });
         }
 
-        const { data } = await veniceFetch("/image/generate", {
-          method: "POST",
-          body: payload,
-          signal: abortRef.current.signal,
-          dispatch,
-        });
+        const payload: any = {
+          model: state.selectedImageModel,
+          prompt: draft.prompt.trim(),
+          width: Number(draft.width),
+          height: Number(draft.height),
+          aspect_ratio: draft.aspectRatio,
+          steps: Number(draft.steps),
+          cfg_scale: Number(draft.cfg),
+          safe_mode: !!draft.safeMode,
+          hide_watermark: !!draft.disableWatermark,
+          return_binary: false,
+        };
+        if (draft.negative.trim()) payload.negative_prompt = draft.negative.trim();
+        if (draft.style) payload.style_preset = draft.style;
 
-        const images = extractImages(data);
+        let resRaw;
+        try {
+          resRaw = await veniceFetch("/image/generate", {
+            method: "POST",
+            body: payload,
+            signal,
+            dispatch,
+          });
+        } catch (err: any) {
+          // If watermark error
+          if (err.status === 400 && String(err.message).toLowerCase().includes("watermark") && payload.hide_watermark) {
+            dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Watermark parameter was rejected by this model/endpoint; retried without it.", type: "warn" }});
+            delete payload.hide_watermark;
+            resRaw = await veniceFetch("/image/generate", {
+              method: "POST",
+              body: payload,
+              signal,
+              dispatch,
+            });
+          } else {
+            throw err;
+          }
+        }
+
+        const images = extractImages(resRaw.data);
         if (!images.length)
-          throw new Error(
-            "Image response did not contain detectable base64 image data or a URL."
-          );
+          throw new Error("Image response did not contain detectable base64 image data or a URL.");
 
         const generatedImage = images[0];
 
-        const saved = await saveImageRecord({
+        const saved = await saveRecordService(dispatch, {
+          id: crypto.randomUUID(),
           image: generatedImage,
           prompt: draft.prompt,
           negative: draft.negative,
@@ -190,7 +184,8 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
           batchIndex: i + 1,
           batchCount,
           disableWatermark: !!draft.disableWatermark,
-        });
+          timestamp: Date.now(),
+        }, true);
 
         successCount++;
         newImages.push(saved);
@@ -212,9 +207,14 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
       } else {
         if (successCount > 0) {
            setSuccess(`Generation cancelled. Saved ${successCount} images.`);
+        } else {
+           setSuccess("Generation cancelled.");
         }
       }
     } finally {
+      if (successCount > 0) {
+        await refreshGallery(dispatch);
+      }
       setLoading(false);
       patch({ generationProgress: "" });
     }
@@ -222,7 +222,8 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
 
   async function saveCurrentAgain() {
     if (!draft.currentImage) return;
-    const saved = await saveImageRecord({
+    const saved = await saveRecordService(dispatch, {
+      id: crypto.randomUUID(),
       image: draft.currentImage,
       prompt: draft.prompt,
       negative: draft.negative,
@@ -234,6 +235,7 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
       cfg: draft.cfg,
       steps: draft.steps,
       safeMode: draft.safeMode,
+      timestamp: Date.now()
     });
     patch({ lastSavedImageId: saved.id });
     setSuccess(`Saved duplicate gallery copy: ${saved.id}`);
@@ -241,14 +243,20 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
 
   async function upscaleCurrent() {
     const item = expanded ||
-      state.gallery.find((x: any) => x.id === draft.lastSavedImageId) || {
+      state.gallery.find((x: GalleryImage) => x.id === draft.lastSavedImageId) || {
         id: draft.lastSavedImageId || "current-preview",
         image: draft.currentImage,
         prompt: draft.prompt,
+        negative: draft.negative,
         model: state.selectedImageModel,
         width: draft.width,
         height: draft.height,
         aspectRatio: draft.aspectRatio,
+        style: draft.style,
+        cfg: draft.cfg,
+        steps: draft.steps,
+        safeMode: draft.safeMode,
+        timestamp: Date.now()
       };
 
     if (!item.image) return;
@@ -256,12 +264,13 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
     setSuccess("");
     setUpscaling(true);
     try {
-      const saved = await upscaleGalleryImage(item);
+      const saved = await upscaleGalleryImage(item as GalleryImage, dispatch);
       patch({ currentImage: saved.image, lastSavedImageId: saved.id });
       setExpanded(saved);
       setSuccess(`Enhanced/upscaled image saved to gallery: ${saved.id}`);
     } catch (err: any) {
       setError(err.message || "Upscale failed");
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: err.message || "Upscale failed", type: "error" } });
     } finally {
       setUpscaling(false);
     }
@@ -316,136 +325,141 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
               value={draft.prompt}
               onChange={(e) => patch({ prompt: e.target.value })}
               placeholder="Premium cinematic product render…"
+              rows={4}
             />
           </Field>
 
-          <Field label="Negative prompt">
-            <input
-              value={draft.negative}
-              onChange={(e) => patch({ negative: e.target.value })}
-              placeholder="low quality, blurry, distorted"
-            />
-          </Field>
+          <CollapsibleSection title="Advanced Settings & Batch">
+            <div className="grid">
+              <Field label="Negative prompt">
+                <input
+                  value={draft.negative}
+                  onChange={(e) => patch({ negative: e.target.value })}
+                  placeholder="low quality, blurry, distorted"
+                />
+              </Field>
 
-          <div className="grid three">
-            <Field label="Aspect ratio">
-              <select
-                value={draft.aspectRatio}
-                onChange={(e) => patch({ aspectRatio: e.target.value })}
-              >
-                <option value="1:1">1:1</option>
-                <option value="16:9">16:9</option>
-                <option value="9:16">9:16</option>
-                <option value="4:3">4:3</option>
-                <option value="3:4">3:4</option>
-                <option value="custom">custom</option>
-              </select>
-            </Field>
-            <Field label="Width">
-              <input
-                type="number"
-                min="256"
-                step="64"
-                value={draft.width}
-                onChange={(e) => patch({ width: e.target.value })}
-              />
-            </Field>
-            <Field label="Height">
-              <input
-                type="number"
-                min="256"
-                step="64"
-                value={draft.height}
-                onChange={(e) => patch({ height: e.target.value })}
-              />
-            </Field>
-          </div>
-
-          <div className="grid three">
-            <Field label="Steps">
-              <input
-                type="number"
-                min="1"
-                max="80"
-                value={draft.steps}
-                onChange={(e) => patch({ steps: e.target.value })}
-              />
-            </Field>
-            <Field label="CFG scale">
-              <input
-                type="number"
-                min="1"
-                max="20"
-                step="0.5"
-                value={draft.cfg}
-                onChange={(e) => patch({ cfg: e.target.value })}
-              />
-            </Field>
-            <Field label="Style preset">
-              <select
-                value={draft.style}
-                onChange={(e) => patch({ style: e.target.value })}
-              >
-                <option value="">none</option>
-                <option value="3D Model">3D Model</option>
-                <option value="Analog Film">Analog Film</option>
-                <option value="Anime">Anime</option>
-                <option value="Cinematic">Cinematic</option>
-                <option value="Comic Book">Comic Book</option>
-                <option value="Digital Art">Digital Art</option>
-                <option value="Fantasy Art">Fantasy Art</option>
-                <option value="Photographic">Photographic</option>
-                <option value="Pixel Art">Pixel Art</option>
-              </select>
-            </Field>
-          </div>
-
-          <div className="grid two">
-            <Field label="Image count">
-              <select
-                value={draft.imageCount || 1}
-                onChange={(e) => patch({ imageCount: Number(e.target.value) })}
-                disabled={loading}
-              >
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-                <option value="6">6</option>
-                <option value="7">7</option>
-                <option value="8">8</option>
-                <option value="9">9</option>
-                <option value="10">10</option>
-              </select>
-              <div className="tiny muted" style={{ marginTop: 4 }}>
-                Creates up to 10 separate images from the same prompt. Large batches are queued to respect rate limits.
-              </div>
-            </Field>
-            <Field label="Safeguard / Watermark">
-              <div className="grid two" style={{ marginTop: 8 }}>
-                <label className="switch">
+              <div className="grid three">
+                <Field label="Aspect ratio">
+                  <select
+                    value={draft.aspectRatio}
+                    onChange={(e) => patch({ aspectRatio: e.target.value })}
+                  >
+                    <option value="1:1">1:1</option>
+                    <option value="16:9">16:9</option>
+                    <option value="9:16">9:16</option>
+                    <option value="4:3">4:3</option>
+                    <option value="3:4">3:4</option>
+                    <option value="custom">custom</option>
+                  </select>
+                </Field>
+                <Field label="Width">
                   <input
-                    type="checkbox"
-                    checked={draft.safeMode}
-                    onChange={(e) => patch({ safeMode: e.target.checked })}
+                    type="number"
+                    min="256"
+                    step="64"
+                    value={draft.width}
+                    onChange={(e) => patch({ width: e.target.value })}
                   />
-                  safe_mode
-                </label>
-                <label className="switch">
+                </Field>
+                <Field label="Height">
                   <input
-                    type="checkbox"
-                    checked={draft.disableWatermark}
-                    onChange={(e) => patch({ disableWatermark: e.target.checked })}
+                    type="number"
+                    min="256"
+                    step="64"
+                    value={draft.height}
+                    onChange={(e) => patch({ height: e.target.value })}
                   />
-                  disable watermark
-                </label>
+                </Field>
               </div>
-              <div className="tiny muted" style={{ marginTop: 4 }}>
-                Watermark disabling is sent only when supported by the selected Venice image endpoint/model.
+
+              <div className="grid three">
+                <Field label="Steps">
+                  <input
+                    type="number"
+                    min="1"
+                    max="80"
+                    value={draft.steps}
+                    onChange={(e) => patch({ steps: e.target.value })}
+                  />
+                </Field>
+                <Field label="CFG scale">
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    step="0.5"
+                    value={draft.cfg}
+                    onChange={(e) => patch({ cfg: e.target.value })}
+                  />
+                </Field>
+                <Field label="Style preset">
+                  <select
+                    value={draft.style}
+                    onChange={(e) => patch({ style: e.target.value })}
+                  >
+                    <option value="">none</option>
+                    <option value="3D Model">3D Model</option>
+                    <option value="Analog Film">Analog Film</option>
+                    <option value="Anime">Anime</option>
+                    <option value="Cinematic">Cinematic</option>
+                    <option value="Comic Book">Comic Book</option>
+                    <option value="Digital Art">Digital Art</option>
+                    <option value="Fantasy Art">Fantasy Art</option>
+                    <option value="Photographic">Photographic</option>
+                    <option value="Pixel Art">Pixel Art</option>
+                  </select>
+                </Field>
               </div>
-            </Field>
-          </div>
+
+              <div className="grid two">
+                <Field label="Image count">
+                  <select
+                    value={draft.imageCount || 1}
+                    onChange={(e) => patch({ imageCount: Number(e.target.value) })}
+                    disabled={loading}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                  </select>
+                  <div className="tiny muted" style={{ marginTop: 4 }}>
+                    Creates up to 10 separate images from the same prompt. Large batches are queued to respect rate limits.
+                  </div>
+                </Field>
+                <Field label="Safeguard / Watermark">
+                  <div className="grid two" style={{ marginTop: 8 }}>
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={draft.safeMode}
+                        onChange={(e) => patch({ safeMode: e.target.checked })}
+                      />
+                      safe_mode
+                    </label>
+                    <label className="switch">
+                      <input
+                        type="checkbox"
+                        checked={draft.disableWatermark}
+                        onChange={(e) => patch({ disableWatermark: e.target.checked })}
+                      />
+                      disable watermark
+                    </label>
+                  </div>
+                  <div className="tiny muted" style={{ marginTop: 4 }}>
+                    Watermark disabling is sent only when supported by the selected Venice image endpoint/model.
+                  </div>
+                </Field>
+              </div>
+            </div>
+          </CollapsibleSection>
 
           <StatusBlock error={error} success={success} />
 
@@ -466,10 +480,11 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
             </button>
             <button
               className="btn"
-              onClick={() => downloadDataUrl(draft.currentImage, "venice-image.png")}
-              disabled={
-                !draft.currentImage || draft.currentImage.startsWith("http")
-              }
+              onClick={async () => {
+                await downloadImage(draft.currentImage, "venice-image.png");
+                dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
+              }}
+              disabled={!draft.currentImage}
             >
               Download image
             </button>
@@ -518,7 +533,7 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
                     state.gallery.find(
                       (x: any) => x.id === draft.lastSavedImageId
                     ) || {
-                      id: draft.lastSavedImageId,
+                      id: draft.lastSavedImageId || "preview",
                       image: draft.currentImage,
                       prompt: draft.prompt,
                       model: state.selectedImageModel,
@@ -538,74 +553,47 @@ export function ImageModule({ state, dispatch }: { state: any; dispatch: any }) 
         </div>
       </div>
 
-      {expanded && (
-        <div className="modal-backdrop" onClick={() => setExpanded(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-image">
-              <img
-                src={expanded.image}
-                alt={expanded.prompt || "Expanded generated image"}
-              />
-            </div>
-            <div className="modal-side">
-              <div
-                className="chip-row"
-                style={{ justifyContent: "space-between" }}
-              >
-                <Chip>{expanded.upscaled ? "upscaled" : "original"}</Chip>
-                <button className="btn ghost" onClick={() => setExpanded(null)}>
-                  Close
-                </button>
-              </div>
-
-              <div>
-                <div className="tiny muted" style={{ marginBottom: 6 }}>
-                  Prompt
+      {recentHistory.length > 0 && (
+        <div style={{ padding: "0 20px 20px" }}>
+          <CollapsibleSection title="Recent Prompts & Settings" defaultOpen={false}>
+            <div className="grid two" style={{ gap: 16 }}>
+              {recentHistory.map((img) => (
+                <div key={img.id} className="history-card" style={{ display: "flex", gap: 12, padding: 16, backgroundColor: "var(--panel-strong)", borderRadius: 24, alignItems: "center" }}>
+                  <img src={img.image} alt="" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 12 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="small" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: 500 }}>
+                      {img.prompt}
+                    </div>
+                    <div className="tiny muted mt-1">
+                      {img.model} • {img.aspectRatio || `${img.width}x${img.height}`}
+                    </div>
+                    <div className="chip-row mt-2" style={{ gap: 6 }}>
+                      <button className="btn small" onClick={() => loadPromptAndSettings(img)}>Load Settings</button>
+                      <button className="btn small" onClick={() => {
+                        patch({ prompt: img.prompt });
+                        dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Copied prompt", type: "info" } });
+                      }}>Copy Prompt</button>
+                    </div>
+                  </div>
                 </div>
-                <div className="prompt-box">
-                  {expanded.prompt || "No prompt saved."}
-                </div>
-              </div>
-
-              <div className="small muted">
-                Model:{" "}
-                <span className="mono">{expanded.model || "unknown"}</span>
-                <br />
-                Created:{" "}
-                {expanded.timestamp
-                  ? new Date(expanded.timestamp).toLocaleString()
-                  : "unknown"}
-                {expanded.batchCount > 1 && (
-                  <>
-                    <br />
-                    Batch: {expanded.batchIndex}/{expanded.batchCount}
-                  </>
-                )}
-              </div>
-
-              <button
-                className="btn primary full"
-                onClick={() =>
-                  downloadDataUrl(expanded.image, galleryFilename(expanded))
-                }
-                disabled={expanded.image?.startsWith("http")}
-              >
-                Save image
-              </button>
-              <button
-                className="btn full"
-                onClick={upscaleCurrent}
-                disabled={upscaling || expanded.image?.startsWith("http")}
-              >
-                {upscaling ? "Enhancing…" : "Enhance & upscale"}
-              </button>
-              <button className="btn danger full" onClick={deleteExpanded}>
-                Delete
-              </button>
+              ))}
             </div>
-          </div>
+          </CollapsibleSection>
         </div>
       )}
+
+      <ImageActionModal
+        image={expanded}
+        isUpscaling={expanded ? upscaling : false}
+        onClose={() => setExpanded(null)}
+        onDownload={async () => {
+          if (!expanded) return;
+          await downloadImage(expanded.image, galleryFilename(expanded.prompt, expanded.timestamp));
+          dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
+        }}
+        onUpscale={upscaleCurrent}
+        onDelete={deleteExpanded}
+      />
     </section>
   );
 }

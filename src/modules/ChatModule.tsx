@@ -8,6 +8,7 @@ import { Field } from "../components/Field";
 import { ModelSelect } from "../components/ModelSelect";
 import { DiagPreview } from "../components/DiagnosticsPreview";
 import { StatusBlock } from "../components/StatusBlock";
+import { CollapsibleSection } from "../components/CollapsibleSection";
 
 export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
   const [systemPrompt, setSystemPrompt] = useState(
@@ -162,87 +163,93 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
         <DiagPreview diagnostics={state.diagnostics} />
       </div>
 
-      <div className="body grid">
-        <div className="grid two">
-          <Field label="Model">
-            <ModelSelect
-              value={state.selectedChatModel}
-              models={state.models.text}
-              onChange={(model) =>
-                dispatch({ type: "SET_SELECTED_CHAT_MODEL", model })
-              }
-            />
-          </Field>
-          <Field label="Optional character_slug">
-            <input
-              value={characterSlug}
-              onChange={(e) => setCharacterSlug(e.target.value)}
-              placeholder="alan-watts"
-            />
-          </Field>
-        </div>
+      <div className="body" style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0 }}>
+        <CollapsibleSection title="Model & Settings">
+          <div className="grid two">
+            <Field label="Model">
+              <ModelSelect
+                value={state.selectedChatModel}
+                models={state.models.text}
+                onChange={(model) =>
+                  dispatch({ type: "SET_SELECTED_CHAT_MODEL", model })
+                }
+              />
+            </Field>
+            <Field label="Optional character_slug">
+              <input
+                value={characterSlug}
+                onChange={(e) => setCharacterSlug(e.target.value)}
+                placeholder="alan-watts"
+              />
+            </Field>
+          </div>
 
-        <Field label="System prompt">
-          <textarea
-            value={systemPrompt}
-            onChange={(e) => setSystemPrompt(e.target.value)}
-          />
-        </Field>
+          <div style={{ marginTop: 16 }}>
+            <Field label="System prompt">
+              <textarea
+                value={systemPrompt}
+                onChange={(e) => setSystemPrompt(e.target.value)}
+                rows={3}
+                style={{ minHeight: 64 }}
+              />
+            </Field>
+          </div>
 
-        <div className="grid three">
-          <Field label="Web search">
-            <select
-              value={webSearch}
-              onChange={(e) => setWebSearch(e.target.value)}
-            >
-              <option value="off">off</option>
-              <option value="on">on</option>
-              <option value="auto">auto</option>
-            </select>
-          </Field>
-          <div className="field">
-            <label>Venice parameters</label>
-            <div className="chip-row">
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={webScraping}
-                  onChange={(e) => setWebScraping(e.target.checked)}
-                />{" "}
-                Web scraping
-              </label>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={webCitations}
-                  onChange={(e) => setWebCitations(e.target.checked)}
-                />{" "}
-                Citations
-              </label>
+          <div className="grid three" style={{ marginTop: 16 }}>
+            <Field label="Web search">
+              <select
+                value={webSearch}
+                onChange={(e) => setWebSearch(e.target.value)}
+              >
+                <option value="off">off</option>
+                <option value="on">on</option>
+                <option value="auto">auto</option>
+              </select>
+            </Field>
+            <div className="field">
+              <label>Venice parameters</label>
+              <div className="chip-row">
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={webScraping}
+                    onChange={(e) => setWebScraping(e.target.checked)}
+                  />{" "}
+                  Web scraping
+                </label>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={webCitations}
+                    onChange={(e) => setWebCitations(e.target.checked)}
+                  />{" "}
+                  Citations
+                </label>
+              </div>
+            </div>
+            <div className="field">
+              <label>Response mode</label>
+              <div className="chip-row">
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={includeVeniceSystemPrompt}
+                    onChange={(e) => setIncludeVeniceSystemPrompt(e.target.checked)}
+                  />{" "}
+                  Include Venice system prompt
+                </label>
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    checked={stream}
+                    onChange={(e) => setStream(e.target.checked)}
+                  />{" "}
+                  Stream response
+                </label>
+              </div>
             </div>
           </div>
-          <div className="field">
-            <label>Response mode</label>
-            <div className="chip-row">
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={includeVeniceSystemPrompt}
-                  onChange={(e) => setIncludeVeniceSystemPrompt(e.target.checked)}
-                />{" "}
-                Include Venice system prompt
-              </label>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  checked={stream}
-                  onChange={(e) => setStream(e.target.checked)}
-                />{" "}
-                Stream response
-              </label>
-            </div>
-          </div>
-        </div>
+        </CollapsibleSection>
 
         <div className="message-list" aria-live="polite">
           {messages.map((m, idx) => (

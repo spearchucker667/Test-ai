@@ -86,13 +86,6 @@ export function SettingsModule({ state, dispatch }: { state: any; dispatch: any 
           </Field>
         </div>
 
-        <Field label="Default system prompt">
-          <textarea
-            value={system}
-            onChange={(e) => setSystem(e.target.value)}
-          />
-        </Field>
-
         <div className="grid two">
           <Field label="Default chat model">
             <ModelSelect
@@ -113,6 +106,35 @@ export function SettingsModule({ state, dispatch }: { state: any; dispatch: any 
             />
           </Field>
         </div>
+
+        <Field label="Environment Defaults (.env.example)">
+          <div style={{ position: "relative" }}>
+            <textarea
+              readOnly
+              rows={7}
+              style={{ fontFamily: 'monospace' }}
+              value={`VENICE_API_KEY="replace_with_your_venice_inference_key"\nMAX_PROXY_BODY_BYTES=26214400\nRATE_LIMIT_WINDOW_MS=60000\nRATE_LIMIT_MAX_REQUESTS=60\nDISABLE_HMR=false\nPORT=3000`}
+            />
+            <button 
+              className="btn sm"
+              style={{ position: "absolute", top: 8, right: 8, minHeight: 32 }}
+              onClick={() => {
+                navigator.clipboard.writeText(`VENICE_API_KEY="replace_with_your_venice_inference_key"\nMAX_PROXY_BODY_BYTES=26214400\nRATE_LIMIT_WINDOW_MS=60000\nRATE_LIMIT_MAX_REQUESTS=60\nDISABLE_HMR=false\nPORT=3000`);
+                setStatus("Copied to clipboard!");
+              }}
+            >
+              Copy
+            </button>
+          </div>
+          <div className="small muted">Only VENICE_API_KEY is sensitive. The other values are safe runtime defaults.</div>
+        </Field>
+
+        <Field label="Default system prompt">
+          <textarea
+            value={system}
+            onChange={(e) => setSystem(e.target.value)}
+          />
+        </Field>
 
         <div className="chip-row">
           <label className="switch">

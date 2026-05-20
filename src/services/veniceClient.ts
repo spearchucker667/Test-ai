@@ -134,8 +134,9 @@ export async function veniceFetch(
       let text = "";
       const contentType = response.headers.get("content-type") || "";
       if (contentType.includes("application/json")) {
+        // use response! to bypass TS check inside catch closure
         parsed = await response.json().catch(async () => {
-          text = await response.text().catch(() => "");
+          text = await response!.text().catch(() => "");
           return null;
         });
       } else if (

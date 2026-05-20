@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import StorageService from "../services/storageService";
 import { veniceFetch } from "../services/veniceClient";
 import { extractImages } from "../utils/image";
-import { downloadDataUrl } from "../utils/download";
+import { downloadImage } from "../utils/download";
 import { Field } from "../components/Field";
 import { Chip } from "../components/Chip";
 import { Markdown } from "../utils/markdown";
@@ -143,8 +143,6 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
             safeMode: idraft.safeMode,
             timestamp: Date.now(),
           });
-          const gallery = await StorageService.getItems("images");
-          dispatch({ type: "SET_GALLERY", items: gallery });
 
           setResults((prev) =>
             prev.map((r, idx) =>
@@ -168,8 +166,13 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
     }
 
     setIsRunning(false);
-    const chats = await StorageService.getItems("chats");
-    dispatch({ type: "SET_CHATS", items: chats });
+    if (draft.type === "text") {
+      const chats = await StorageService.getItems("chats");
+      dispatch({ type: "SET_CHATS", items: chats });
+    } else {
+      const gallery = await StorageService.getItems("images");
+      dispatch({ type: "SET_GALLERY", items: gallery });
+    }
   }
 
   function cancel() {
@@ -312,8 +315,8 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
                       src={r.result}
                       alt={r.prompt}
                       className="batch-img-thumb"
-                      onClick={() =>
-                        downloadDataUrl(r.result, `venice-batch-${i}.png`)
+                      onClick={async () =>
+                        await downloadImage(r.result, `venice-batch-${i}.png`)
                       }
                     />
                     <div className="tiny muted mt-1">Tap to download</div>

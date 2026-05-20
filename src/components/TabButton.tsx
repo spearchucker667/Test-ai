@@ -5,12 +5,14 @@ export function TabButton({
   label,
   active,
   onClick,
+  className = "",
 }: {
   key?: React.Key;
   id: string;
   label: string;
   active: boolean;
   onClick: (id: string) => void;
+  className?: string;
 }) {
   const icons: Record<string, string> = {
     chat: "✦",
@@ -24,7 +26,7 @@ export function TabButton({
   };
   return (
     <button
-      className={`nav-button ${active ? "active" : ""}`}
+      className={`nav-button ${active ? "active" : ""} ${className}`}
       onClick={() => onClick(id)}
       aria-current={active ? "page" : undefined}
     >

@@ -1,37 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import StorageService from "../services/storageService";
-import { stripDataUrlPrefix, extractImages, galleryFilename } from "../utils/image";
-import { downloadDataUrl } from "../utils/download";
-import { veniceFetch } from "../services/veniceClient";
+import { galleryFilename } from "../utils/image";
+import { downloadImage } from "../utils/download";
+import { upscaleGalleryImage, downloadAllGallery } from "../services/imageWorkflowService";
 import { Chip } from "../components/Chip";
 import { StatusBlock } from "../components/StatusBlock";
+import { ImageActionModal } from "../components/ImageActionModal";
+import { AppState, AppDispatch } from "../types/app";
+import { GalleryImage } from "../types/storage";
 
-function downloadAllGallery(items: any[]) {
-  if (!items?.length) return;
-  items.forEach((item, index) => {
-    setTimeout(() => {
-      if (!item.image) return;
-      downloadDataUrl(item.image, galleryFilename(item, index));
-    }, index * 250);
-  });
-}
-
-export function GalleryModule({ state, dispatch }: { state: any; dispatch: any }) {
-  const [expanded, setExpanded] = useState<any>(null);
+export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: AppDispatch }) {
+  const [expanded, setExpanded] = useState<GalleryImage | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [upscalingId, setUpscalingId] = useState("");
-
-  useEffect(() => {
-    if (expanded) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [expanded]);
 
   async function remove(id: string) {
     await StorageService.deleteItem("images", id);
@@ -46,41 +28,17 @@ export function GalleryModule({ state, dispatch }: { state: any; dispatch: any }
     setExpanded(null);
   }
 
-  async function upscale(item: any) {
+  async function upscale(item: GalleryImage) {
     setError("");
     setStatus("");
     setUpscalingId(item.id);
     try {
-      const cleanB64 = stripDataUrlPrefix(item.image);
-      const { data } = await veniceFetch("/image/upscale", {
-        method: "POST",
-        body: { image: cleanB64, scale: 2 },
-        dispatch,
-        retry: true,
-      });
-
-      const upscaledImage = data?.dataUrl || extractImages(data)[0];
-      if (!upscaledImage)
-        throw new Error(
-          "Upscale response did not contain detectable image data."
-        );
-
-      const record = {
-        ...item,
-        id: crypto.randomUUID(),
-        image: upscaledImage,
-        upscaled: true,
-        parentId: item.id,
-        timestamp: Date.now(),
-      };
-      await StorageService.saveItem("images", record);
-      const items = await StorageService.getItems("images");
-      dispatch({ type: "SET_GALLERY", items });
-
-      setExpanded(record);
-      setStatus(`Enhanced/upscaled copy saved: ${record.id}`);
+      const saved = await upscaleGalleryImage(item, dispatch);
+      setExpanded(saved);
+      setStatus(`Enhanced/upscaled copy saved: ${saved.id}`);
     } catch (err: any) {
       setError(err.message || "Upscale failed");
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: err.message || "Upscale failed", type: "error" } });
     } finally {
       setUpscalingId("");
     }
@@ -97,10 +55,10 @@ export function GalleryModule({ state, dispatch }: { state: any; dispatch: any }
         </div>
         <div className="chip-row">
           <Chip>{state.gallery.length} images</Chip>
-          <Chip>{state.chats.length} chats</Chip>
+          <Chip>{state.chats?.length || 0} chats</Chip>
           <button
             className="btn"
-            onClick={() => downloadAllGallery(state.gallery)}
+            onClick={() => downloadAllGallery(state.gallery, (msg, type) => dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: msg, type } }))}
             disabled={!state.gallery.length}
           >
             Save all gallery
@@ -119,7 +77,7 @@ export function GalleryModule({ state, dispatch }: { state: any; dispatch: any }
         <StatusBlock error={error} success={status} />
 
         <div className="gallery">
-          {state.gallery.map((item: any, index: number) => (
+          {state.gallery.map((item: GalleryImage, index: number) => (
             <div className="gallery-card" key={item.id}>
               <img
                 src={item.image}
@@ -130,7 +88,7 @@ export function GalleryModule({ state, dispatch }: { state: any; dispatch: any }
                 <div className="small">
                   <strong>{item.model}</strong>{" "}
                   {item.upscaled && <Chip>upscaled</Chip>}
-                  {item.batchCount > 1 && <Chip>Batch {item.batchIndex}/{item.batchCount}</Chip>}
+                  {item.batchCount && item.batchCount > 1 && <Chip>Batch {item.batchIndex}/{item.batchCount}</Chip>}
                 </div>
                 <div className="tiny muted">
                   {new Date(item.timestamp).toLocaleString()}
@@ -139,10 +97,10 @@ export function GalleryModule({ state, dispatch }: { state: any; dispatch: any }
                 <div className="chip-row">
                   <button
                     className="btn"
-                    onClick={() =>
-                      downloadDataUrl(item.image, galleryFilename(item, index))
-                    }
-                    disabled={item.image?.startsWith("http")}
+                    onClick={async () => {
+                      await downloadImage(item.image, galleryFilename(item.prompt, item.timestamp));
+                      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
+                    }}
                   >
                     Download
                   </button>
@@ -150,7 +108,7 @@ export function GalleryModule({ state, dispatch }: { state: any; dispatch: any }
                     className="btn"
                     onClick={() => upscale(item)}
                     disabled={
-                      upscalingId === item.id || item.image?.startsWith("http")
+                      upscalingId === item.id || item.image?.startsWith("http") || item.upscaled
                     }
                   >
                     {upscalingId === item.id ? "Enhancing…" : "Enhance"}
@@ -176,10 +134,10 @@ export function GalleryModule({ state, dispatch }: { state: any; dispatch: any }
         <div className="panel pad">
           <div className="panel-header">
             <div className="panel-title">Recent chat records</div>
-            <Chip>{state.chats.length}</Chip>
+            <Chip>{(state as any).chats?.length || 0}</Chip>
           </div>
           <div className="grid">
-            {state.chats.slice(0, 8).map((c: any) => (
+            {((state as any).chats || []).slice(0, 8).map((c: any) => (
               <div className="model-item" key={c.id}>
                 <div className="small">
                   <strong>{c.model}</strong> ·{" "}
@@ -188,87 +146,25 @@ export function GalleryModule({ state, dispatch }: { state: any; dispatch: any }
                 <div className="small muted">{c.prompt}</div>
               </div>
             ))}
-            {!state.chats.length && (
+            {!((state as any).chats?.length) && (
               <div className="small muted">No saved chat completions yet.</div>
             )}
           </div>
         </div>
       </div>
 
-      {expanded && (
-        <div className="modal-backdrop" onClick={() => setExpanded(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-image">
-              <img
-                src={expanded.image}
-                alt={expanded.prompt || "Expanded gallery image"}
-              />
-            </div>
-            <div className="modal-side">
-              <div
-                className="chip-row"
-                style={{ justifyContent: "space-between" }}
-              >
-                <Chip>{expanded.upscaled ? "upscaled" : "original"}</Chip>
-                <button className="btn ghost" onClick={() => setExpanded(null)}>
-                  Close
-                </button>
-              </div>
-
-              <div>
-                <div className="tiny muted" style={{ marginBottom: 6 }}>
-                  Prompt
-                </div>
-                <div className="prompt-box">
-                  {expanded.prompt || "No prompt saved."}
-                </div>
-              </div>
-
-              <div className="small muted">
-                Model:{" "}
-                <span className="mono">{expanded.model || "unknown"}</span>
-                <br />
-                Created:{" "}
-                {expanded.timestamp
-                  ? new Date(expanded.timestamp).toLocaleString()
-                  : "unknown"}
-                {expanded.batchCount > 1 && (
-                  <>
-                    <br />
-                    Batch: {expanded.batchIndex}/{expanded.batchCount}
-                  </>
-                )}
-              </div>
-
-              <button
-                className="btn primary full"
-                onClick={() =>
-                  downloadDataUrl(expanded.image, galleryFilename(expanded))
-                }
-                disabled={expanded.image?.startsWith("http")}
-              >
-                Save image
-              </button>
-              <button
-                className="btn full"
-                onClick={() => upscale(expanded)}
-                disabled={
-                  upscalingId === expanded.id ||
-                  expanded.image?.startsWith("http")
-                }
-              >
-                {upscalingId === expanded.id ? "Enhancing…" : "Enhance & upscale"}
-              </button>
-              <button
-                className="btn danger full"
-                onClick={() => remove(expanded.id)}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ImageActionModal
+        image={expanded}
+        isUpscaling={expanded ? upscalingId === expanded.id : false}
+        onClose={() => setExpanded(null)}
+        onDownload={async () => {
+          if (!expanded) return;
+          await downloadImage(expanded.image, galleryFilename(expanded.prompt, expanded.timestamp));
+          dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });
+        }}
+        onUpscale={() => expanded && upscale(expanded)}
+        onDelete={() => expanded && remove(expanded.id)}
+      />
     </section>
   );
 }
