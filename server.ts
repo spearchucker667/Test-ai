@@ -12,7 +12,10 @@ async function startServer() {
   const PORT = Number(process.env.PORT || 3000);
 
   // Simple Rate Limiting
-  const rateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
+  const parsedRateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS);
+  const rateLimitWindowMs = Number.isFinite(parsedRateLimitWindowMs) && parsedRateLimitWindowMs > 0
+    ? parsedRateLimitWindowMs
+    : 60000;
   const rateLimitMax = Number(process.env.RATE_LIMIT_MAX_REQUESTS || 60);
   const reqCounts = new Map<string, { count: number; resetTime: number }>();
 
