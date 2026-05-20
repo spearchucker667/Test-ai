@@ -8,7 +8,7 @@
  *   - No remote module
  *   - Navigation restricted to localhost dev server or local file
  */
-import { app, BrowserWindow, shell, session } from "electron";
+import { app, BrowserWindow, shell } from "electron";
 import path from "path";
 import { registerIpcHandlers } from "./ipc/handlers";
 import { startVeniceProxy, stopVeniceProxy } from "./services/veniceProxy";
@@ -25,7 +25,7 @@ const CSP =
   "font-src 'self' data:; " +
   "media-src 'self' blob:;";
 
-function createWindow(proxyPort: number): BrowserWindow {
+function createWindow(): BrowserWindow {
   const preloadPath = path.join(__dirname, "preload.js");
 
   const win = new BrowserWindow({
@@ -97,7 +97,7 @@ async function bootstrap(): Promise<void> {
   // Register IPC handlers after proxy is started
   registerIpcHandlers();
 
-  createWindow(proxyPort);
+  createWindow();
 }
 
 // Single-instance lock
@@ -128,7 +128,7 @@ if (!gotLock) {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       startVeniceProxy()
-        .then((port) => createWindow(port))
+        .then(() => createWindow())
         .catch((err) => console.error("[Main] Reactivate failed:", err));
     }
   });

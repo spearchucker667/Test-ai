@@ -21,16 +21,23 @@ import { initDesktopBridge, isElectron, desktopApiKey } from "./services/desktop
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const [apiKeyConfigured, setApiKeyConfigured] = useState<boolean | null>(null);
+  // bridgeReady gates all initial API calls: in web mode it is true immediately
+  // (bridge init is a no-op); in Electron it becomes true once getProxyUrl() resolves.
+  const [bridgeReady, setBridgeReady] = useState(!isElectron());
 
   // Initialise the desktop bridge (no-op in web mode)
   useEffect(() => {
+    let mounted = true;
     initDesktopBridge().then(() => {
+      if (!mounted) return;
+      setBridgeReady(true);
       if (isElectron()) {
         desktopApiKey.isConfigured().then(setApiKeyConfigured).catch(() => setApiKeyConfigured(false));
       } else {
         setApiKeyConfigured(null); // web mode – key handled server-side
       }
     });
+    return () => { mounted = false; };
   }, []);
 
   useEffect(() => {
@@ -58,9 +65,11 @@ export default function App() {
     };
   }, []);
 
+  // Gate initial model refresh until the proxy URL is resolved (critical in Electron)
   useEffect(() => {
+    if (!bridgeReady) return;
     refreshModels(dispatch);
-  }, []);
+  }, [bridgeReady]);
 
   useEffect(() => {
     StorageService.saveItem("settings", {

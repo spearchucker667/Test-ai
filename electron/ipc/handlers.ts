@@ -90,40 +90,35 @@ export function registerIpcHandlers(): void {
   ipcMain.handle("app:getDataPath", () => app.getPath("userData"));
   ipcMain.handle("app:isEncryptionAvailable", () => isEncryptionAvailable());
 
-  // Export/import stubs — actual data is in IndexedDB in the renderer
-  // The renderer serialises its own data and passes it here for file save
-  ipcMain.handle("app:showSaveDialog", async (_event, options: { defaultPath?: string }) => {
+  // File export/import: dialog and file IO happen entirely in the main process.
+  // The renderer passes only the JSON data string (for export); it never controls
+  // the file path — that is always chosen via the OS dialog.
+
+  ipcMain.handle("app:saveJsonFile", async (_event, data: unknown, defaultPath: unknown) => {
+    if (typeof data !== "string") throw new Error("app:saveJsonFile: data must be a string");
+    const resolvedPath = typeof defaultPath === "string" ? defaultPath : "venice-forge-export.json";
     const { dialog } = await import("electron");
     const result = await dialog.showSaveDialog({
       title: "Export Venice Forge data",
-      defaultPath: options?.defaultPath ?? "venice-forge-export.json",
+      defaultPath: resolvedPath,
       filters: [{ name: "JSON", extensions: ["json"] }],
     });
-    return result;
+    if (result.canceled || !result.filePath) return { ok: false, canceled: true };
+    const fs = await import("fs/promises");
+    await fs.writeFile(result.filePath, data, "utf-8");
+    return { ok: true, canceled: false };
   });
 
-  ipcMain.handle("app:showOpenDialog", async () => {
+  ipcMain.handle("app:loadJsonFile", async () => {
     const { dialog } = await import("electron");
     const result = await dialog.showOpenDialog({
       title: "Import Venice Forge data",
       filters: [{ name: "JSON", extensions: ["json"] }],
       properties: ["openFile"],
     });
-    return result;
-  });
-
-  ipcMain.handle("app:writeFile", async (_event, filePath: unknown, data: unknown) => {
-    if (typeof filePath !== "string" || typeof data !== "string") {
-      throw new Error("Invalid arguments to app:writeFile");
-    }
+    if (result.canceled || !result.filePaths[0]) return { canceled: true };
     const fs = await import("fs/promises");
-    await fs.writeFile(filePath, data, "utf-8");
-    return { ok: true };
-  });
-
-  ipcMain.handle("app:readFile", async (_event, filePath: unknown) => {
-    if (typeof filePath !== "string") throw new Error("Invalid path");
-    const fs = await import("fs/promises");
-    return fs.readFile(filePath, "utf-8");
+    const data = await fs.readFile(result.filePaths[0], "utf-8");
+    return { canceled: false, data };
   });
 }

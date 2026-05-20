@@ -45,17 +45,13 @@ const veniceForge = {
   },
 
   files: {
-    showSaveDialog(options: { defaultPath?: string }): Promise<Electron.SaveDialogReturnValue> {
-      return ipcRenderer.invoke("app:showSaveDialog", options);
+    /** Shows a save dialog then writes data to the chosen path. Returns canceled:true if dismissed. */
+    saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }> {
+      return ipcRenderer.invoke("app:saveJsonFile", data, defaultPath);
     },
-    showOpenDialog(): Promise<Electron.OpenDialogReturnValue> {
-      return ipcRenderer.invoke("app:showOpenDialog");
-    },
-    writeFile(filePath: string, data: string): Promise<{ ok: boolean }> {
-      return ipcRenderer.invoke("app:writeFile", filePath, data);
-    },
-    readFile(filePath: string): Promise<string> {
-      return ipcRenderer.invoke("app:readFile", filePath);
+    /** Shows an open dialog then reads the chosen file. Returns canceled:true if dismissed. */
+    loadJsonFile(): Promise<{ canceled: boolean; data?: string }> {
+      return ipcRenderer.invoke("app:loadJsonFile");
     },
   },
 };

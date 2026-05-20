@@ -86,10 +86,9 @@ export async function startVeniceProxy(): Promise<number> {
     if (req.method !== "POST" && req.method !== "GET") {
       return res.status(405).json({ error: "Method not allowed." });
     }
-    const isAllowed = ALLOWED_PATHS.some(
-      (p) => req.path === p || req.path.startsWith(p + "?") || req.path.startsWith(p + "/")
-    );
-    if (!isAllowed && req.path !== "/") {
+    // Strict path matching — req.path excludes the query string in Express,
+    // so this correctly allows /models?type=all while blocking /models/anything.
+    if (!ALLOWED_PATHS.includes(req.path)) {
       return res.status(403).json({ error: `Endpoint ${req.path} is not allowed.` });
     }
     next();

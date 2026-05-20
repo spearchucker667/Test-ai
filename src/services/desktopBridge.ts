@@ -71,9 +71,9 @@ export const desktopApp = {
 /** File export/import helpers */
 export const desktopFiles = {
   async exportJson(data: unknown, defaultPath = "venice-forge-export.json"): Promise<boolean> {
+    const json = JSON.stringify(data, null, 2);
     if (!isElectron()) {
       // Web fallback: trigger a browser download
-      const json = JSON.stringify(data, null, 2);
       const blob = new Blob([json], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -83,17 +83,14 @@ export const desktopFiles = {
       URL.revokeObjectURL(url);
       return true;
     }
-    const result = await window.veniceForge!.files.showSaveDialog({ defaultPath });
-    if (result.canceled || !result.filePath) return false;
-    await window.veniceForge!.files.writeFile(result.filePath, JSON.stringify(data, null, 2));
-    return true;
+    const result = await window.veniceForge!.files.saveJsonFile(json, defaultPath);
+    return result.ok;
   },
 
   async importJson(): Promise<unknown | null> {
     if (!isElectron()) return null;
-    const result = await window.veniceForge!.files.showOpenDialog();
-    if (result.canceled || !result.filePaths[0]) return null;
-    const raw = await window.veniceForge!.files.readFile(result.filePaths[0]);
-    return JSON.parse(raw);
+    const result = await window.veniceForge!.files.loadJsonFile();
+    if (result.canceled || !result.data) return null;
+    return JSON.parse(result.data);
   },
 };

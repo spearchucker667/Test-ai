@@ -17,16 +17,10 @@ export interface VeniceForgeApp {
 }
 
 export interface VeniceForgeFiles {
-  showSaveDialog(options: { defaultPath?: string }): Promise<{
-    canceled: boolean;
-    filePath?: string;
-  }>;
-  showOpenDialog(): Promise<{
-    canceled: boolean;
-    filePaths: string[];
-  }>;
-  writeFile(filePath: string, data: string): Promise<{ ok: boolean }>;
-  readFile(filePath: string): Promise<string>;
+  /** Shows a save dialog then writes the JSON string to the chosen path. */
+  saveJsonFile(data: string, defaultPath?: string): Promise<{ ok: boolean; canceled: boolean }>;
+  /** Shows an open dialog then reads the file, returning its content. */
+  loadJsonFile(): Promise<{ canceled: boolean; data?: string }>;
 }
 
 export interface VeniceForge {

@@ -143,6 +143,11 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
         const items = await StorageService.getItems("chats");
         dispatch({ type: "SET_CHATS", items });
       }
+      if (Array.isArray(data.settings)) {
+        for (const s of data.settings) await StorageService.saveItem("settings", s);
+        const latestSettings = data.settings[0]?.value;
+        if (latestSettings) dispatch({ type: "SET_SETTINGS", settings: latestSettings });
+      }
       setStatus("Data imported successfully.");
     } catch (err: any) {
       setStatusError(err.message || "Import failed.");
