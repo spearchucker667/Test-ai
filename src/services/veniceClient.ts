@@ -227,7 +227,6 @@ export async function veniceFetch(
 
     let response: Response | null = null;
     let diagHeaders: any = {};
-    const endedAt = nowIso();
     try {
       response = await fetch(url, {
         method,

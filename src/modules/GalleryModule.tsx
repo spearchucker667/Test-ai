@@ -33,7 +33,7 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
     setStatus("");
     setUpscalingId(item.id);
     try {
-      const saved = await upscaleGalleryImage(item, dispatch);
+      const saved = await upscaleGalleryImage(item, dispatch, state.selectedImageModel);
       setExpanded(saved);
       setStatus(`Enhanced/upscaled copy saved: ${saved.id}`);
     } catch (err: any) {

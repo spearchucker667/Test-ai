@@ -11,6 +11,33 @@ export function createServerApp() {
   const app = express();
   app.disable("x-powered-by");
 
+  // Trust the first proxy hop so req.ip reflects the real client IP.
+  // Adjust the value if there are multiple proxy layers in front of this server.
+  app.set("trust proxy", 1);
+
+  // Security headers for all responses
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob:",
+        "connect-src 'self'",
+        "font-src 'self' data:",
+        "media-src 'self' blob:",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'none'",
+      ].join("; ")
+    );
+    next();
+  });
+
   // Simple Rate Limiting
   const parsedRateLimitWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS);
   const rateLimitWindowMs = Number.isFinite(parsedRateLimitWindowMs) && parsedRateLimitWindowMs > 0
@@ -33,7 +60,7 @@ export function createServerApp() {
       return res.status(500).json({ error: "VENICE_API_KEY is not configured on the server." });
     }
 
-    const ip = req.ip || req.connection.remoteAddress || "unknown";
+    const ip = req.ip || "unknown";
     const now = Date.now();
     const record = reqCounts.get(ip) || { count: 0, resetTime: now + rateLimitWindowMs };
 

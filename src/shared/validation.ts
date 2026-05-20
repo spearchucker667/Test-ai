@@ -3,6 +3,9 @@ export const ALLOWED_VENICE_ENDPOINTS = [
   "/chat/completions",
   "/image/generate",
   "/image/upscale",
+  "/augment/search",
+  "/augment/scrape",
+  "/augment/text-parser",
 ] as const;
 
 export const ALLOWED_VENICE_METHODS = ["GET", "POST"] as const;

@@ -145,6 +145,13 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
         { images: imagesBefore, chats: chatsBefore, settings: settingsBefore },
         await desktopApp.getVersion()
       );
+
+      // Persist backup before any data is overwritten so it is recoverable.
+      await desktopFiles.exportJson(
+        backup,
+        `venice-forge-pre-import-backup-${new Date().toISOString().slice(0, 10)}.json`
+      );
+
       const { payload, summary } = validateImportJson(json);
 
       for (const img of payload.data.images) await StorageService.saveItem("images", img);
@@ -163,7 +170,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
       setStatus(
         `Imported ${summary.imagesFound} images, ${summary.chatsFound} chats, ${summary.settingsFound} settings. ` +
-          `${summary.skippedRecords} records skipped. Pre-import backup prepared (${backup.data.images.length} images, ${backup.data.chats.length} chats).`
+          `${summary.skippedRecords} records skipped. Pre-import backup saved (${backup.data.images.length} images, ${backup.data.chats.length} chats).`
       );
     } catch (err: any) {
       setStatusError(err.message || "Import failed.");

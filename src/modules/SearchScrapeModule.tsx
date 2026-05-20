@@ -6,6 +6,17 @@ import { Chip } from "../components/Chip";
 import { DiagPreview } from "../components/DiagnosticsPreview";
 import { copyText } from "../utils/download";
 
+/** Allow only http/https URLs; return "#" for anything else (javascript:, data:, etc.). */
+function safeHref(url: string | undefined): string {
+  if (!url) return "#";
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" || parsed.protocol === "http:" ? url : "#";
+  } catch {
+    return "#";
+  }
+}
+
 export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: any }) {
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState("brave");
@@ -153,7 +164,7 @@ export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: 
                       </strong>
                     </div>
                     <div className="small">
-                      <a href={r.url || r.link} target="_blank" rel="noreferrer">
+                      <a href={safeHref(r.url || r.link)} target="_blank" rel="noreferrer">
                         {r.url || r.link}
                       </a>
                     </div>
