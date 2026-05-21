@@ -68,6 +68,13 @@ export function withFallbackModels(groups: Record<string, any[]>) {
   return next;
 }
 
+function normalizeWebSearchSetting(value: unknown): "off" | "on" | "auto" {
+  if (value === true) return "on";
+  if (value === false) return "off";
+  if (value === "off" || value === "on" || value === "auto") return value;
+  return "off";
+}
+
 export const initialState = {
   activeTab: "chat",
   models: withFallbackModels({}) as Record<string, import("../types/venice").ModelInfo[]>,
@@ -148,7 +155,39 @@ export const appReducer = produce((draft: typeof initialState, action: AppAction
       ];
       for (const key of allowedKeys) {
         if (key in action.settings) {
-          (draft.settings as any)[key] = action.settings[key];
+          const nextValue = (action.settings as any)[key];
+          if (key === "defaultSystemPrompt") {
+            if (typeof nextValue === "string") draft.settings.defaultSystemPrompt = nextValue;
+            continue;
+          }
+          if (key === "includeVeniceSystemPrompt") {
+            if (typeof nextValue === "boolean") draft.settings.includeVeniceSystemPrompt = nextValue;
+            continue;
+          }
+          if (key === "webSearch") {
+            draft.settings.webSearch = normalizeWebSearchSetting(nextValue);
+            continue;
+          }
+          if (key === "webScraping") {
+            if (typeof nextValue === "boolean") draft.settings.webScraping = nextValue;
+            continue;
+          }
+          if (key === "webCitations") {
+            if (typeof nextValue === "boolean") draft.settings.webCitations = nextValue;
+            continue;
+          }
+          if (key === "theme") {
+            if (nextValue === "dark" || nextValue === "light" || nextValue === "system") {
+              draft.settings.theme = nextValue;
+            }
+            continue;
+          }
+          if (key === "customModels") {
+            if (Array.isArray(nextValue)) {
+              draft.settings.customModels = nextValue.filter((m: unknown): m is string => typeof m === "string");
+            }
+            continue;
+          }
         }
       }
       break;

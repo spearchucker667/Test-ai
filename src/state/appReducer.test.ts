@@ -41,4 +41,25 @@ describe("appReducer", () => {
     expect((Object.getPrototypeOf(nextState.settings) as any).evil).toBeUndefined();
     expect(Object.getPrototypeOf(nextState.settings)).toBe(Object.prototype);
   });
+
+  // BUG-007 regression guard: legacy boolean webSearch settings must be coerced
+  it("coerces legacy webSearch values to allowed enum strings", () => {
+    const fromTrue = appReducer(initialState, {
+      type: "SET_SETTINGS",
+      settings: { webSearch: true as any },
+    });
+    expect(fromTrue.settings.webSearch).toBe("on");
+
+    const fromFalse = appReducer(initialState, {
+      type: "SET_SETTINGS",
+      settings: { webSearch: false as any },
+    });
+    expect(fromFalse.settings.webSearch).toBe("off");
+
+    const fromInvalid = appReducer(initialState, {
+      type: "SET_SETTINGS",
+      settings: { webSearch: "invalid" as any },
+    });
+    expect(fromInvalid.settings.webSearch).toBe("off");
+  });
 });

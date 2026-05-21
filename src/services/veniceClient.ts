@@ -111,6 +111,22 @@ function readDesktopErrorBody(body: any): string {
   return String(body?.detail || body?.text || "Unknown Venice API error");
 }
 
+function readWebErrorBody(parsed: any, text: string, statusText: string): string {
+  const top = parsed?.error?.message || parsed?.error || parsed?.message;
+  if (top) return String(top);
+  const details = parsed?.details;
+  if (details && typeof details === "object") {
+    if (Array.isArray(details._errors) && details._errors.length) return String(details._errors[0]);
+    for (const key of Object.keys(details)) {
+      if (key === "_errors") continue;
+      const errs = details[key]?._errors;
+      if (Array.isArray(errs) && errs.length) return `${key}: ${String(errs[0])}`;
+    }
+    return "Request validation failed";
+  }
+  return String(parsed?.detail || text || statusText || "Unknown Venice API error");
+}
+
 interface SerializedFormDataEntry {
   name: string;
   value: string;
@@ -178,7 +194,7 @@ async function veniceFetchDesktop(
         {
           endpoint,
           method: method as "GET" | "POST",
-          body,
+          body: serializedBody,
           headers,
         },
         signal
@@ -361,27 +377,14 @@ async function _veniceFetch(
         status: response.status,
         ok: response.ok,
         headers: diagHeaders,
-        error: "",
+        error: response.ok ? "" : normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText)),
         startedAt,
         endedAt: nowIso(),
       });
       dispatch?.({ type: "SET_DIAGNOSTICS", diagnostics: diag });
 
       if (!response.ok) {
-        const rawMessage =
-          parsed?.error?.message ||
-          parsed?.error ||
-          parsed?.message ||
-          parsed?.detail ||
-          text ||
-          response.statusText ||
-          "Unknown Venice API error";
-        const normalized = normalizeError(
-          response.status,
-          typeof rawMessage === "string"
-            ? rawMessage
-            : JSON.stringify(rawMessage)
-        );
+        const normalized = diag.error || normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText));
         const retryable = [429, 500, 503].includes(response.status);
 
         if (retryable && attempt < maxAttempts - 1) {
@@ -413,19 +416,21 @@ async function _veniceFetch(
       lastError = new Error(normalized);
       lastError.status = err.status || response?.status || null;
 
-      dispatch?.({
-        type: "SET_DIAGNOSTICS",
-        diagnostics: summarizeDiagnostics({
-          endpoint,
-          method,
-          status: lastError.status,
-          ok: false,
-          headers: diagHeaders,
-          error: normalized,
-          startedAt,
-          endedAt: nowIso(),
-        }),
-      });
+      if (!err.diagnostics) {
+        dispatch?.({
+          type: "SET_DIAGNOSTICS",
+          diagnostics: summarizeDiagnostics({
+            endpoint,
+            method,
+            status: lastError.status,
+            ok: false,
+            headers: diagHeaders,
+            error: normalized,
+            startedAt,
+            endedAt: nowIso(),
+          }),
+        });
+      }
 
       if (
         (isFetchFailure || [429, 500, 503].includes(lastError.status)) &&

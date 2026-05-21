@@ -23,6 +23,13 @@ export interface ChatPayloadOptions {
   disableThinking?: boolean;
 }
 
+function normalizeWebSearchMode(value: unknown): "off" | "on" | "auto" {
+  if (value === true) return "on";
+  if (value === false) return "off";
+  if (value === "off" || value === "on" || value === "auto") return value;
+  return "off";
+}
+
 export function buildChatPayload(
   model: string,
   messages: ChatMessage[],
@@ -35,7 +42,7 @@ export function buildChatPayload(
     venice_parameters: {
       include_venice_system_prompt: !!settings.includeVeniceSystemPrompt,
       // Venice requires string enum "auto" | "off" | "on" — never a boolean.
-      enable_web_search: settings.webSearch || "off",
+      enable_web_search: normalizeWebSearchMode(settings.webSearch),
       enable_web_scraping: !!settings.webScraping,
       enable_web_citations: !!settings.webCitations,
       enable_x_search: !!options.enableXSearch,

@@ -64,7 +64,11 @@ This backlog reflects the current repository state. Completed items from earlier
 | BUG-004 | P0 | Done | `enable_web_search` sent as boolean instead of string enum | `payloadBuilders.ts`: now passes string value directly (`"off"` default). Root cause of all `/chat/completions` HTTP 400s. |
 | BUG-005 | P0 | Done | Venice `DetailedError` (Zod) not parsed — fell through to "Unknown Venice API error" | `src/services/veniceClient.ts` + `electron/services/veniceClient.ts`: both now extract `details._errors` and field-level errors. |
 | BUG-006 | P1 | Done | Every failed request produced two diagnostic log entries | `veniceFetchDesktop` now sets the error message in the initial dispatch; catch block skips re-dispatch when `err.diagnostics` is set. |
+| BUG-007 | P0 | Done | Legacy boolean `webSearch` values could still produce invalid chat payloads | `appReducer.ts` now coerces legacy boolean/imported values to valid enum strings (`off`/`on`/`auto`), and `buildChatPayload` enforces the same normalization before sending. |
+| BUG-008 | P1 | Done | Electron text-parser FormData uploads were not using serialized IPC payload | `veniceFetchDesktop` now sends `serializedBody` across IPC for `isFormData` requests, restoring reliable `/augment/text-parser` uploads in desktop mode. |
+| BUG-009 | P2 | Done | Web transport showed duplicate diagnostics and weak schema-error parsing on non-2xx responses | Web path in `veniceClient.ts` now parses Venice `DetailedError` format and avoids catch-path re-dispatch when an HTTP diagnostics entry already exists. |
 
+## Verification Commands
 
 
 ```bash
