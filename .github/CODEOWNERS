@@ -1,33 +1,33 @@
-# Venice Forge — Code Owners
-# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
-#
-# Primary maintainer and owner: @fayeblade (@spearchucker667)
-# Review requests are automatically assigned based on these patterns.
+# Venice Forge — Code Owners 
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners 
+# 
+# Primary maintainer and owner: @fayeblade @spearchucker667 
+# Review requests are automatically assigned based on these patterns. 
 
-# Global fallback — all files
-* @fayeblade (@spearchucker667)
+# Global fallback — all files 
+* @fayeblade @spearchucker667 
 
-# Core application logic
-/src/ @fayeblade (@spearchucker667)
-/electron/ @fayeblade (@spearchucker667)
-/server.ts @fayeblade (@spearchucker667)
+# Core application logic 
+/src/ @fayeblade @spearchucker667 
+/electron/ @fayeblade @spearchucker667 
+/server.ts @fayeblade @spearchucker667 
 
-# Build & packaging configuration
-/vite.config.ts @fayeblade (@spearchucker667)
-/electron-builder.config.cjs @fayeblade (@spearchucker667)
-/tsconfig.json @fayeblade (@spearchucker667)
-/tsconfig.electron.json @fayeblade (@spearchucker667)
+# Build & packaging configuration 
+/vite.config.ts @fayeblade @spearchucker667 
+/electron-builder.config.cjs @fayeblade @spearchucker667 
+/tsconfig.json @fayeblade @spearchucker667 
+/tsconfig.electron.json @fayeblade @spearchucker667 
 
-# CI / CD workflows
-/.github/workflows/ @fayeblade (@spearchucker667)
+# CI / CD workflows 
+/.github/workflows/ @fayeblade @spearchucker667 
 
-# Security-critical files
-/src/shared/validation.ts @fayeblade (@spearchucker667)
-/electron/ipc/validation.ts @fayeblade (@spearchucker667)
-/electron/services/secureStore.ts @fayeblade (@spearchucker667)
-/src/services/cryptoService.ts @fayeblade (@spearchucker667)
+# Security-critical files 
+/src/shared/validation.ts @fayeblade @spearchucker667 
+/electron/ipc/validation.ts @fayeblade @spearchucker667 
+/electron/services/secureStore.ts @fayeblade @spearchucker667 
+/src/services/cryptoService.ts @fayeblade @spearchucker667 
 
-# Documentation
-docs/ @fayeblade (@spearchucker667)
-README.md @fayeblade (@spearchucker667)
-SECURITY.md @fayeblade (@spearchucker667)
+# Documentation 
+docs/ @fayeblade @spearchucker667 
+README.md @fayeblade @spearchucker667 
+SECURITY.md @fayeblade @spearchucker667
