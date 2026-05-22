@@ -1,3 +1,5 @@
+/** @fileoverview Gallery lifecycle helpers for saving, upscaling, and bulk-downloading images. */
+
 import StorageService from "./storageService";
 import { AppDispatch } from "../types/app";
 import { GalleryImage } from "../types/storage";
@@ -6,11 +8,22 @@ import { extractImages, galleryFilename } from "../utils/image";
 import { downloadImage } from "../utils/download";
 import { isValidImageResponse } from "../utils/veniceValidation";
 
+/**
+ * Refreshes the gallery state by reloading all image records from IndexedDB.
+ * @param dispatch The app dispatch function.
+ */
 export const refreshGallery = async (dispatch: AppDispatch) => {
   const items = await StorageService.getItems("images");
   dispatch({ type: "SET_GALLERY", items });
 };
 
+/**
+ * Persists an image record to IndexedDB and optionally refreshes the gallery.
+ * @param dispatch The app dispatch function.
+ * @param record The image record to save.
+ * @param skipRefresh If true, skips the automatic gallery refresh after saving.
+ * @returns A promise resolving to the saved record.
+ */
 export const saveImageRecord = async (dispatch: AppDispatch, record: GalleryImage, skipRefresh?: boolean) => {
   const saved = await StorageService.saveItem("images", {
     ...record,
@@ -23,12 +36,20 @@ export const saveImageRecord = async (dispatch: AppDispatch, record: GalleryImag
   return saved;
 };
 
+/** Options for upscaling a gallery image. */
 interface UpscaleOptions {
   model?: string;
   onComplete?: () => void;
   onError?: (err: Error) => void;
 }
 
+/**
+ * Upscales a gallery image via the Venice API and saves the result.
+ * @param item The source gallery image to upscale.
+ * @param dispatch The app dispatch function.
+ * @param options Optional callbacks and model override.
+ * @returns A promise resolving to the newly saved upscaled record.
+ */
 export const upscaleGalleryImage = async (
   item: GalleryImage,
   dispatch: AppDispatch,
@@ -74,11 +95,18 @@ export const upscaleGalleryImage = async (
   }
 };
 
+/** Options for bulk gallery downloads. */
 export interface DownloadAllOptions {
   onProgress?: (current: number, total: number) => void;
   cancelSignal?: { current: boolean };
 }
 
+/**
+ * Downloads up to 50 gallery images with a throttled delay between items.
+ * @param items The gallery images to download.
+ * @param addToast A callback for surfacing toast notifications.
+ * @param options Optional progress and cancellation controls.
+ */
 export const downloadAllGallery = async (
   items: GalleryImage[],
   addToast: (msg: string, type: "info" | "success" | "error") => void,
