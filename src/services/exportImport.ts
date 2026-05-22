@@ -1,18 +1,28 @@
+/** @fileoverview Export and import logic for Venice Forge user data with validation and redaction. */
+
 import { STORE_NAMES } from "../constants/venice";
 import { redactSecrets } from "./redaction";
 
+/** Current schema version for export payloads. */
 export const EXPORT_SCHEMA_VERSION = 1;
+
+/** Maximum allowed size for an import JSON string in bytes. */
 export const MAX_IMPORT_JSON_BYTES = 25 * 1024 * 1024;
 
+/** Ordered list of stores eligible for export and import. */
 const EXPORT_STORES = ["images", "chats", "settings"] as const;
+
+/** Union type of exportable store names. */
 type ExportStore = (typeof EXPORT_STORES)[number];
 
+/** Shape of the data object inside an export payload. */
 export interface ExportData {
   images: Record<string, unknown>[];
   chats: Record<string, unknown>[];
   settings: Record<string, unknown>[];
 }
 
+/** Top-level structure of a Venice Forge data export. */
 export interface ExportPayload {
   version: number;
   exportedAt: string;
@@ -20,6 +30,7 @@ export interface ExportPayload {
   data: ExportData;
 }
 
+/** Summary of records discovered during import validation. */
 export interface ImportSummary {
   imagesFound: number;
   chatsFound: number;
@@ -27,19 +38,36 @@ export interface ImportSummary {
   skippedRecords: number;
 }
 
+/** Result of validating an import file, including the sanitized payload. */
 export interface ValidatedImport {
   payload: ExportPayload;
   summary: ImportSummary;
 }
 
+/**
+ * Computes the byte length of a UTF-8 string.
+ * @param value The string to measure.
+ * @returns The size in bytes.
+ */
 function byteLength(value: string): number {
   return new Blob([value]).size;
 }
 
+/**
+ * Determines whether a value is a plain object (not an array, function, or null).
+ * @param value The value to test.
+ * @returns True if the value is a plain object.
+ */
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+/**
+ * Sanitizes a single record for import, stripping secrets and ensuring required fields.
+ * @param store The target store name.
+ * @param value The raw record to sanitize.
+ * @returns The cleaned record, or null if it is invalid.
+ */
 function sanitizeRecord(store: ExportStore, value: unknown): Record<string, unknown> | null {
   if (!isPlainObject(value)) return null;
 
@@ -69,6 +97,11 @@ function sanitizeRecord(store: ExportStore, value: unknown): Record<string, unkn
   return record;
 }
 
+/**
+ * Sanitizes a settings value object by stripping secret fields.
+ * @param value The raw settings value.
+ * @returns A cleaned plain object safe for persistence.
+ */
 function sanitizeSettingsValue(value: unknown): Record<string, unknown> {
   if (!isPlainObject(value)) return {};
   const sanitized: Record<string, unknown> = {};
@@ -80,6 +113,12 @@ function sanitizeSettingsValue(value: unknown): Record<string, unknown> {
   return sanitized;
 }
 
+/**
+ * Sanitizes an array of raw records for a given store.
+ * @param store The target store name.
+ * @param values The raw records to process.
+ * @returns An object containing the valid records and a skip count.
+ */
 function sanitizeRecords(store: ExportStore, values: unknown[]): { records: Record<string, unknown>[]; skipped: number } {
   const records: Record<string, unknown>[] = [];
   let skipped = 0;
@@ -91,6 +130,12 @@ function sanitizeRecords(store: ExportStore, values: unknown[]): { records: Reco
   return { records, skipped };
 }
 
+/**
+ * Builds a validated export payload from partial store data.
+ * @param data Partial export data containing zero or more store arrays.
+ * @param appVersion The current application version string.
+ * @returns A complete export payload with metadata and sanitized records.
+ */
 export function createExportPayload(data: Partial<ExportData>, appVersion: string): ExportPayload {
   const payloadData = EXPORT_STORES.reduce((acc, store) => {
     const records = Array.isArray(data[store]) ? data[store] : [];
@@ -106,6 +151,12 @@ export function createExportPayload(data: Partial<ExportData>, appVersion: strin
   };
 }
 
+/**
+ * Validates and sanitizes an import JSON string.
+ * @param json The raw JSON string to validate.
+ * @returns An object containing the validated payload and import summary.
+ * @throws If the JSON is malformed, too large, or violates schema constraints.
+ */
 export function validateImportJson(json: string): ValidatedImport {
   if (byteLength(json) > MAX_IMPORT_JSON_BYTES) {
     throw new Error("Import JSON is too large.");

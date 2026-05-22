@@ -1,19 +1,21 @@
-// Code Owner: fayeblade (@spearchucker667)
-// Shared payload builders for Venice API requests.
+/** @fileoverview Shared payload builders for Venice API chat and image requests. */
 
+/** Represents a single message in a chat conversation. */
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
 
+/** Configures Venice-specific chat behaviour such as web search and citations. */
 export interface ChatSettings {
   includeVeniceSystemPrompt?: boolean;
-  /** Venice API expects "auto" | "off" | "on" — not a boolean. */
+  /** Specifies the web search mode; Venice expects "auto", "off", or "on". */
   webSearch?: string;
   webScraping?: boolean;
   webCitations?: boolean;
 }
 
+/** Options that control streaming, character slugs, reasoning, and thinking output. */
 export interface ChatPayloadOptions {
   stream?: boolean;
   characterSlug?: string;
@@ -23,6 +25,12 @@ export interface ChatPayloadOptions {
   disableThinking?: boolean;
 }
 
+/**
+ * Normalises a loose web search value to a strict Venice enum.
+ *
+ * @param value An unknown value that may represent a web search mode.
+ * @returns The normalised mode: "off", "on", or "auto".
+ */
 function normalizeWebSearchMode(value: unknown): "off" | "on" | "auto" {
   if (value === true) return "on";
   if (value === false) return "off";
@@ -30,6 +38,15 @@ function normalizeWebSearchMode(value: unknown): "off" | "on" | "auto" {
   return "off";
 }
 
+/**
+ * Builds a complete chat completion payload for the Venice API.
+ *
+ * @param model The target model identifier.
+ * @param messages An ordered array of chat messages.
+ * @param settings Venice-specific behaviour settings.
+ * @param options Optional flags for streaming, characters, and reasoning.
+ * @returns A record ready to be serialised and sent to /chat/completions.
+ */
 export function buildChatPayload(
   model: string,
   messages: ChatMessage[],
@@ -57,6 +74,7 @@ export function buildChatPayload(
   return payload;
 }
 
+/** Describes the user-editable fields of an image generation draft. */
 export interface ImageDraftLike {
   prompt: string;
   negative?: string;
@@ -70,6 +88,14 @@ export interface ImageDraftLike {
   disableWatermark?: boolean;
 }
 
+/**
+ * Builds an image generation payload for the Venice API.
+ *
+ * @param model The target image model identifier.
+ * @param draft The user's image generation draft.
+ * @param promptOverride An optional prompt that overrides the draft value.
+ * @returns A record ready to be serialised and sent to /image/generate.
+ */
 export function buildImagePayload(
   model: string,
   draft: ImageDraftLike,

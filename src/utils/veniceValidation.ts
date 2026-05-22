@@ -1,20 +1,23 @@
 /**
- * Runtime validators for Venice API response shapes.
+ * @fileoverview Runtime validators for Venice API response shapes.
  *
  * These guards are intentionally non-throwing: they return a normalised result
  * (or null/empty) and emit a console warning so callers can decide whether to
  * surface an error to the user or fall back gracefully.
  */
 
+/** Represents a successful /models response. */
 export interface ModelListResponse {
   data: any[];
 }
 
+/** Represents a successful /image/generate or /image/upscale response. */
 export interface ImageGenerateResponse {
   images?: string[];
   data?: any[];
 }
 
+/** Represents a successful /chat/completions response. */
 export interface ChatCompletionsResponse {
   choices: Array<{
     message?: { content?: string };
@@ -25,7 +28,9 @@ export interface ChatCompletionsResponse {
 
 /**
  * Validates that a /models response contains a usable model list.
- * Returns true if the payload looks valid.
+ *
+ * @param payload The raw response payload to validate.
+ * @returns True when the payload contains a model list.
  */
 export function isValidModelListResponse(payload: unknown): payload is ModelListResponse {
   if (!payload || typeof payload !== "object") {
@@ -43,8 +48,10 @@ export function isValidModelListResponse(payload: unknown): payload is ModelList
 }
 
 /**
- * Validates that a /image/generate or /image/upscale response contains image data.
- * Returns true if the payload has at least one recognisable image field.
+ * Validates that an /image/generate or /image/upscale response contains image data.
+ *
+ * @param payload The raw response payload to validate.
+ * @returns True when the payload has at least one recognisable image field.
  */
 export function isValidImageResponse(payload: unknown): boolean {
   if (!payload || typeof payload !== "object") {
@@ -69,7 +76,9 @@ export function isValidImageResponse(payload: unknown): boolean {
 
 /**
  * Validates that a non-streaming /chat/completions response has choices.
- * Returns true if the payload looks usable.
+ *
+ * @param payload The raw response payload to validate.
+ * @returns True when the payload contains a choices array.
  */
 export function isValidChatResponse(payload: unknown): payload is ChatCompletionsResponse {
   if (!payload || typeof payload !== "object") {
@@ -85,7 +94,10 @@ export function isValidChatResponse(payload: unknown): payload is ChatCompletion
 }
 
 /**
- * Validates a /augment/search response contains a results array.
+ * Validates that a /augment/search response contains a results array.
+ *
+ * @param payload The raw response payload to validate.
+ * @returns True when the payload contains a recognisable results field.
  */
 export function isValidSearchResponse(payload: unknown): boolean {
   if (!payload || typeof payload !== "object") {
