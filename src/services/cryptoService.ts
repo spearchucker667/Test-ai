@@ -1,8 +1,13 @@
+/** @fileoverview IndexedDB at-rest encryption for chats and settings using AES-GCM. */
+
 // Code Owner: fayeblade (@spearchucker667)
-// IndexedDB at-rest encryption for chats and settings.
 const ALGO = "AES-GCM";
 const KEY_NAME = "venice-forge-key";
 
+/**
+ * Retrieves an existing AES-GCM key from IndexedDB or generates a new one.
+ * @returns A promise resolving to the CryptoKey.
+ */
 async function getOrCreateKey(): Promise<CryptoKey> {
   const db = await openKeyDB();
   const existing = await new Promise<any>((resolve, reject) => {
@@ -25,6 +30,10 @@ async function getOrCreateKey(): Promise<CryptoKey> {
   });
 }
 
+/**
+ * Opens the dedicated key storage IndexedDB.
+ * @returns A promise resolving to the key database.
+ */
 function openKeyDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open("venice_forge_keys", 1);
@@ -36,6 +45,11 @@ function openKeyDB(): Promise<IDBDatabase> {
   });
 }
 
+/**
+ * Encrypts a JavaScript value using AES-GCM.
+ * @param data The value to encrypt.
+ * @returns A promise resolving to the encrypted payload wrapper.
+ */
 export async function encryptData(data: any): Promise<any> {
   const key = await getOrCreateKey();
   const iv = crypto.getRandomValues(new Uint8Array(12));
@@ -53,6 +67,11 @@ export async function encryptData(data: any): Promise<any> {
   };
 }
 
+/**
+ * Decrypts an AES-GCM encrypted payload back into its original value.
+ * @param encryptedPayload The wrapper object produced by encryptData.
+ * @returns A promise resolving to the decrypted value, or null on failure.
+ */
 export async function decryptData(encryptedPayload: any): Promise<any> {
   if (!encryptedPayload || !encryptedPayload._encrypted) return encryptedPayload;
   try {

@@ -1,0 +1,131 @@
+{
+  "rup_version": "3.0.0",
+  "phase": "discovery",
+  "repo_name": "venice-forge",
+  "repo_url": "https://github.com/spearchucker667/Windows-Venice-API-connector",
+  "discovered_at": "2026-05-22T08:10:00-07:00",
+  "discovery_agent": "kimi-code-cli",
+  "repo_size_category": "small",
+  "metrics": {
+    "total_source_files": 71,
+    "typescript_files": 33,
+    "tsx_files": 28,
+    "electron_ts_files": 10,
+    "test_files": 13,
+    "total_tests": 122,
+    "passing_tests": 121,
+    "failing_tests": 1,
+    "npm_audit_vulnerabilities": 0,
+    "loc_approximate": 10000
+  },
+  "governance": {
+    "readme": "present",
+    "license": "MIT",
+    "security_policy": "present",
+    "contributing": "present",
+    "code_of_conduct": "present",
+    "changelog": "present",
+    "codeowners": "present",
+    "issue_templates": ["bug_report", "feature_request"],
+    "pull_request_template": "present",
+    "dependabot": "present"
+  },
+  "ci_cd": {
+    "ci_workflow": "present (Node 20/22 matrix, ubuntu-latest)",
+    "release_workflow": "present (windows-latest, NSIS + portable)",
+    "codeql": "missing",
+    "dependency_review": "missing",
+    "sbom_generation": "missing"
+  },
+  "findings": [
+    {
+      "id": "DISC-001",
+      "priority": "P0",
+      "category": "ci_cd",
+      "title": "Release workflow uses non-existent GitHub Action versions",
+      "description": "`.github/workflows/windows-release.yml` references `actions/checkout@v6` and `actions/setup-node@v6`. The latest published major version for both actions is v4. This will cause the release workflow to fail immediately.",
+      "evidence": "windows-release.yml lines 17, 20",
+      "impact": "breaks_release_pipeline"
+    },
+    {
+      "id": "DISC-002",
+      "priority": "P0",
+      "category": "correctness",
+      "title": "Failing test: desktopBridge web fallback lacks indexedDB mock",
+      "description": "`src/services/desktopBridge.test.ts` fails with `ReferenceError: indexedDB is not defined` because `desktopApiKey.isConfigured()` indirectly calls `storageService.getItems()`, which opens an IndexedDB via `idb`. The test environment (jsdom) does not provide `indexedDB`, and `fake-indexeddb` is not initialized in this test file.",
+      "evidence": "desktopBridge.test.ts line 14; storageService.ts line 11",
+      "impact": "breaks_ci_test_suite"
+    },
+    {
+      "id": "DISC-003",
+      "priority": "P1",
+      "category": "developer_experience",
+      "title": "No ESLint or Prettier configuration",
+      "description": "The project enforces TypeScript strict mode but has no linting (ESLint) or formatting (Prettier) setup. This increases risk of style drift, missing unused variables, and undetected code smells.",
+      "evidence": "No .eslintrc, eslint.config, .prettierrc, or prettier.config files found.",
+      "impact": "degraded_code_quality"
+    },
+    {
+      "id": "DISC-004",
+      "priority": "P1",
+      "category": "developer_experience",
+      "title": "No test coverage reporting",
+      "description": "Vitest runs tests but coverage is not configured. There is no `--coverage` flag in package.json scripts and no `@vitest/coverage-v8` dependency.",
+      "evidence": "package.json scripts; no coverage dependency in devDependencies.",
+      "impact": "unknown_test_coverage"
+    },
+    {
+      "id": "DISC-005",
+      "priority": "P2",
+      "category": "security",
+      "title": "No CodeQL security analysis workflow",
+      "description": "RUP Protocol recommends CodeQL for JavaScript/TypeScript repositories to detect security vulnerabilities. The repo has no `.github/workflows/codeql.yml`.",
+      "evidence": "No CodeQL workflow in .github/workflows/",
+      "impact": "missing_security_scanning"
+    },
+    {
+      "id": "DISC-006",
+      "priority": "P2",
+      "category": "security",
+      "title": "No dependency review or lockfile integrity check in CI",
+      "description": "CI does not run `npm ci --audit` or verify that `package-lock.json` is in sync with `package.json`. A drift between the two could lead to reproducibility issues.",
+      "evidence": "ci.yml runs `npm ci` without `--audit` or lockfile verification.",
+      "impact": "supply_chain_risk"
+    },
+    {
+      "id": "DISC-007",
+      "priority": "P2",
+      "category": "developer_experience",
+      "title": "No pre-commit hooks or git hooks configured",
+      "description": "No husky, lint-staged, or similar tooling to enforce typecheck/tests before commit.",
+      "evidence": "No .husky/ directory or git hooks beyond default templates.",
+      "impact": "human_error_risk"
+    },
+    {
+      "id": "DISC-008",
+      "priority": "P3",
+      "category": "polish",
+      "title": "TODO.md contains stale 'Open' items without target dates",
+      "description": "Several P1/P2 items in TODO.md are marked 'Open' but have no milestone or target date, making it hard to track public readiness progress.",
+      "evidence": "TODO.md lines 18-30",
+      "impact": "low"
+    }
+  ],
+  "strengths": [
+    "Comprehensive documentation (README, AGENTS.md, ABOUT, SECURITY, LEGAL, RELEASE, REPOSITORY_TREE)",
+    "TypeScript strict mode enforced across renderer and Electron main",
+    "0 npm audit vulnerabilities",
+    "121 of 122 tests passing",
+    "Well-structured Electron IPC validation and secure storage",
+    "Dependabot configured for npm and GitHub Actions",
+    "Issue and PR templates present",
+    "CODEOWNERS with explicit security-critical file assignments",
+    "CI matrix across Node 20 and 22"
+  ],
+  "risk_summary": {
+    "P0_count": 2,
+    "P1_count": 2,
+    "P2_count": 3,
+    "P3_count": 1
+  }
+}

@@ -1,3 +1,5 @@
+/** @fileoverview Unit tests for export/import schema validation and redaction. */
+
 import { describe, expect, it } from "vitest";
 import {
   EXPORT_SCHEMA_VERSION,
@@ -6,7 +8,9 @@ import {
   validateImportJson,
 } from "./exportImport";
 
+/** Tests for export/import schema validation. */
 describe("export/import schema validation", () => {
+  /** Verifies that exports include version metadata and strip API keys. */
   it("creates a versioned export without API keys", () => {
     const payload = createExportPayload(
       {
@@ -23,6 +27,7 @@ describe("export/import schema validation", () => {
     expect(payload.data.settings[0].value).not.toHaveProperty("apiKey");
   });
 
+  /** Verifies that valid imports are summarized and unsafe fields are stripped. */
   it("summarizes valid imports and strips unsafe fields", () => {
     const json = JSON.stringify({
       version: EXPORT_SCHEMA_VERSION,
@@ -46,6 +51,7 @@ describe("export/import schema validation", () => {
     expect(JSON.stringify(result.payload)).not.toContain("secret");
   });
 
+  /** Verifies rejection of oversized payloads and unexpected store shapes. */
   it("rejects oversized or unexpected import shapes", () => {
     expect(() => validateImportJson("x".repeat(MAX_IMPORT_JSON_BYTES + 1))).toThrow(/too large/i);
     expect(() =>

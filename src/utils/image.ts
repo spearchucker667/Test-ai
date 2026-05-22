@@ -1,7 +1,21 @@
+/** @fileoverview Image normalization, extraction, and filename utilities for gallery items. */
+
+/**
+ * Strips the data URL scheme and base64 prefix from an image string.
+ *
+ * @param dataUrl A string that may contain a data URL prefix.
+ * @returns The raw base64 payload with the prefix removed.
+ */
 export function stripDataUrlPrefix(dataUrl: string) {
   return String(dataUrl || "").replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, "");
 }
 
+/**
+ * Normalizes various image payload shapes into a standard data URL or HTTPS URL.
+ *
+ * @param value An unknown value that may represent image data.
+ * @returns A normalized data URL or HTTPS URL, or null if the value is unrecognisable.
+ */
 export function normalizeImageData(value: any): string | null {
   if (!value) return null;
   if (typeof value === "string") {
@@ -28,6 +42,12 @@ export function normalizeImageData(value: any): string | null {
   return null;
 }
 
+/**
+ * Extracts and deduplicates image URLs from a Venice API payload.
+ *
+ * @param payload A response payload that may contain images in various fields.
+ * @returns An array of unique normalised image URLs.
+ */
 export function extractImages(payload: any): string[] {
   const candidates: string[] = [];
   const push = (x: any) => {
@@ -54,6 +74,14 @@ export function extractImages(payload: any): string[] {
   return Array.from(new Set(candidates));
 }
 
+/**
+ * Builds a safe filename for a gallery image from its metadata.
+ *
+ * @param item A gallery record containing model and id fields.
+ * @param index Fallback numeric index when id is missing.
+ * @param suffix Optional suffix to append before the extension.
+ * @returns A sanitised PNG filename.
+ */
 export function galleryFilename(item: any, index = 0, suffix = "") {
   const safeModel = String(item?.model || "venice").replace(/[^a-z0-9_-]+/gi, "-").slice(0, 40);
   const id = String(item?.id || index).replace(/[^a-z0-9_-]+/gi, "-").slice(0, 60);

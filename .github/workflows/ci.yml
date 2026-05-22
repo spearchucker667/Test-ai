@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-      - run: npm ci
+      - run: npm ci --prefer-offline
       - run: npm run typecheck
       - run: npm test
       - run: npm run build

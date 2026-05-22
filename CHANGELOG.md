@@ -9,6 +9,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ## [Unreleased]
 
 ### Added
+- Added ESLint configuration (`eslint.config.mjs`) with TypeScript-ESLint and React Hooks rules.
+- Added Vitest coverage reporting via `@vitest/coverage-v8` and `npm run test:coverage`.
+- Added GitHub CodeQL security analysis workflow (`.github/workflows/codeql.yml`).
+- Added `npm run lint:eslint` script for static analysis.
 - Added README release ribbon and badges for CI, Windows release, latest GitHub release, license, Node support, TypeScript strict mode, Electron, and Venice API.
 - Added `docs/REPOSITORY_TREE.md` with a public repository map and segment ownership notes.
 - Added `docs/LEGAL.md` with Venice.ai TOS/privacy/API links, affiliation notice, API key handling notes, and release disclaimers.
@@ -17,6 +21,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ### Changed
 - Updated all supporting documentation to match the current app status and public release process.
+- CI workflow now uses `npm ci --prefer-offline` for slightly faster installs and reproducibility.
 - Windows release workflow now generates and uploads SHA-256 checksum sidecar files for `.exe` artifacts.
 - Updated `metadata.json` to describe Venice Forge instead of the previous empty/generated metadata.
 - `readDesktopErrorBody` (`src/services/veniceClient.ts`) and `readResponseError` (`electron/services/veniceClient.ts`) both now correctly parse Venice `DetailedError` (Zod format: `{ details: { _errors, fieldName: { _errors } } }`) — previously fell through to "Unknown Venice API error" for all schema-validation failures.
@@ -24,6 +29,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - Web-mode diagnostics parity: non-2xx responses in the web transport now parse Venice `DetailedError` consistently and avoid catch-path duplicate diagnostics once an HTTP diagnostics entry has already been emitted.
 
 ### Fixed
+- **CI:** `.github/workflows/windows-release.yml` referenced non-existent `actions/checkout@v6` and `actions/setup-node@v6`. Downgraded to `@v4` to match the latest published action versions and restore the release pipeline.
+- **Test:** `src/services/desktopBridge.test.ts` failed with `ReferenceError: indexedDB is not defined` because `vi.stubGlobal("window", {})` stripped the fake-indexeddb instance from jsdom. The test now stubs `window` with `{ indexedDB: global.indexedDB }` so the `isConfigured()` path can open the fake database.
 - **BUG-004:** `enable_web_search` was serialised as a boolean (`true`/`false`) instead of the required string enum (`"auto"` / `"on"` / `"off"`), causing HTTP 400 on every `/chat/completions` request. `buildChatPayload` now passes the string value directly (defaulting to `"off"`).
 - **BUG-005:** Venice `DetailedError` responses (Zod validation failures) were not parsed — the error body contains a `details` object with `_errors` arrays and no top-level `error` field. Both the renderer and Electron main-process clients now extract the first `_errors` message or a field-level error when present.
 - **BUG-006:** Every failed Venice request produced two entries in the diagnostics log: one with `error: ""` from the initial HTTP dispatch, and a second with the actual message from the retry/catch path. The redundant dispatch has been removed; the initial entry now carries the fully resolved error.

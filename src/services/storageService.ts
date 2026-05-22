@@ -1,10 +1,23 @@
+/** @fileoverview IndexedDB storage service with transparent at-rest encryption for sensitive stores. */
+
 import { DB_NAME, DB_VERSION, STORE_NAMES } from "../constants/venice";
 import { encryptData, decryptData } from "./cryptoService";
 
+/** List of store names whose records are encrypted before persistence. */
 const ENCRYPTED_STORES = ["chats", "settings", "images"];
 
+/**
+ * Provides CRUD operations over IndexedDB with automatic encryption for
+ * configured object stores.
+ */
 const StorageService = {
+  /** The open IndexedDB database instance, cached after first open. */
   db: null as IDBDatabase | null,
+
+  /**
+   * Opens or returns the cached IndexedDB connection.
+   * @returns A promise resolving to the IDBDatabase instance.
+   */
   openDB(): Promise<IDBDatabase> {
     if (this.db) return Promise.resolve(this.db);
     return new Promise((resolve, reject) => {
@@ -24,6 +37,13 @@ const StorageService = {
       request.onerror = () => reject(request.error);
     });
   },
+
+  /**
+   * Saves an item to the specified store, encrypting if required.
+   * @param store The target object store name.
+   * @param item The record to persist.
+   * @returns A promise resolving to the saved record with generated id and timestamp.
+   */
   async saveItem(store: string, item: any): Promise<any> {
     const db = await this.openDB();
     const id = item.id || crypto.randomUUID();
@@ -42,6 +62,12 @@ const StorageService = {
       tx.onerror = () => reject(tx.error);
     });
   },
+
+  /**
+   * Retrieves all items from a store, decrypting encrypted records.
+   * @param store The object store name to query.
+   * @returns A promise resolving to an array of decrypted records sorted by timestamp descending.
+   */
   async getItems(store: string): Promise<any[]> {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
@@ -75,6 +101,13 @@ const StorageService = {
       req.onerror = () => reject(req.error);
     });
   },
+
+  /**
+   * Deletes a single record from a store.
+   * @param store The object store name.
+   * @param id The unique identifier of the record to delete.
+   * @returns A promise resolving to true on success.
+   */
   async deleteItem(store: string, id: string): Promise<boolean> {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
@@ -84,6 +117,12 @@ const StorageService = {
       tx.onerror = () => reject(tx.error);
     });
   },
+
+  /**
+   * Clears all records from the specified store.
+   * @param store The object store name to clear.
+   * @returns A promise resolving to true on success.
+   */
   async clearStore(store: string): Promise<boolean> {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {

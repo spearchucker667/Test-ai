@@ -1,24 +1,44 @@
+/** @fileoverview Single entry point for all Venice API calls from the renderer. */
+
 // Code Owner: fayeblade (@spearchucker667)
-// Single entry point for all Venice API calls from the renderer.
 import { extractImages } from "../utils/image";
 import { DIAG_HEADER_NAMES } from "../constants/venice";
 import { PROXY_BASE_PATH } from "../shared/apiConfig";
 import { desktopVenice, isElectron } from "./desktopBridge";
 import StorageService from "./storageService";
+
+/** Maximum allowed upload size in bytes (25 MiB). */
 export const MAX_SERIALIZED_UPLOAD_BYTES = 25 * 1024 * 1024;
 
-// In-flight request deduplication (API-004)
+/** In-flight request deduplication map (API-004). */
 const inFlight = new Map<string, Promise<any>>();
 
+/**
+ * Generates a deduplication key from request parameters.
+ * @param endpoint The API endpoint.
+ * @param method The HTTP method.
+ * @param body The request body.
+ * @returns A string key suitable for deduplicating identical requests.
+ */
 function dedupeKey(endpoint: string, method: string, body: unknown): string {
   const bodyHash = body === undefined ? "" : JSON.stringify(body);
   return `${method} ${endpoint} ${bodyHash}`;
 }
 
+/**
+ * Returns the current timestamp as an ISO 8601 string.
+ * @returns The current time in ISO format.
+ */
 function nowIso() {
   return new Date().toISOString();
 }
 
+/**
+ * Pauses execution for a given duration, optionally respecting an abort signal.
+ * @param ms The number of milliseconds to sleep.
+ * @param signal An optional abort signal to cancel the sleep early.
+ * @returns A promise that resolves after the delay or rejects if aborted.
+ */
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const id = setTimeout(resolve, ms);
@@ -35,14 +55,31 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
+/**
+ * Calculates an exponential backoff delay for a given retry attempt.
+ * @param attempt The current retry attempt number (0-indexed).
+ * @param baseMs The base delay in milliseconds.
+ * @param maxMs The maximum delay cap in milliseconds.
+ * @returns The computed backoff delay.
+ */
 function calculateBackoff(attempt: number, baseMs = 1000, maxMs = 8000): number {
   return Math.min(baseMs * Math.pow(2, attempt), maxMs);
 }
 
+/**
+ * Checks whether a number resembles a Unix timestamp (seconds since epoch).
+ * @param n The number to evaluate.
+ * @returns True if the value looks like a Unix timestamp.
+ */
 function looksLikeUnixTimestamp(n: number) {
   return Number.isFinite(n) && n > 1000000000 && n < 9999999999;
 }
 
+/**
+ * Extracts known diagnostic headers from a response object.
+ * @param response The fetch Response to inspect.
+ * @returns A record of header names to their string values.
+ */
 function parseDiagnosticsHeaders(response: Response) {
   const headers: Record<string, string> = {};
   DIAG_HEADER_NAMES.forEach((name) => {
@@ -52,6 +89,11 @@ function parseDiagnosticsHeaders(response: Response) {
   return headers;
 }
 
+/**
+ * Summarizes request metadata into a diagnostic snapshot.
+ * @param params The raw request and response fields.
+ * @returns A normalized diagnostics object with latency and header info.
+ */
 export function summarizeDiagnostics({
   endpoint,
   method,
@@ -78,6 +120,12 @@ export function summarizeDiagnostics({
   };
 }
 
+/**
+ * Normalizes an HTTP error status and raw message into a user-friendly string.
+ * @param status The HTTP status code, or null if unavailable.
+ * @param rawMessage The original error message.
+ * @returns A formatted error string combining the status and message.
+ */
 export function normalizeError(status: number | null, rawMessage: string) {
   const base = rawMessage || "Request failed";
   const map: Record<number, string> = {
@@ -95,6 +143,11 @@ export function normalizeError(status: number | null, rawMessage: string) {
   return status && map[status] ? `${map[status]}: ${base}` : base;
 }
 
+/**
+ * Extracts a readable error message from a desktop API response body.
+ * @param body The parsed response body from the main process.
+ * @returns A human-readable error string.
+ */
 function readDesktopErrorBody(body: any): string {
   // Standard Venice error: { error: string } or { error: { message: string } }
   const top = body?.error?.message || body?.error || body?.message;
@@ -113,6 +166,13 @@ function readDesktopErrorBody(body: any): string {
   return String(body?.detail || body?.text || "Unknown Venice API error");
 }
 
+/**
+ * Extracts a readable error message from a web-mode API response.
+ * @param parsed The parsed JSON body, if available.
+ * @param text The raw response text.
+ * @param statusText The HTTP status text.
+ * @returns A human-readable error string.
+ */
 export function readWebErrorBody(parsed: any, text: string, statusText: string): string {
   const top = parsed?.error?.message || parsed?.error || parsed?.message;
   if (top) return typeof top === "object" ? JSON.stringify(top) : String(top);
@@ -129,6 +189,7 @@ export function readWebErrorBody(parsed: any, text: string, statusText: string):
   return String(parsed?.detail || text || statusText || "Unknown Venice API error");
 }
 
+/** Represents a single entry inside a serialized FormData payload. */
 interface SerializedFormDataEntry {
   name: string;
   value: string;
@@ -137,11 +198,17 @@ interface SerializedFormDataEntry {
   _isFile?: boolean;
 }
 
+/** Represents a FormData object that has been serialized for IPC transport. */
 interface SerializedFormData {
   _isSerializedFormData: true;
   entries: SerializedFormDataEntry[];
 }
 
+/**
+ * Serializes a FormData instance into a plain object safe for IPC.
+ * @param formData The FormData to serialize.
+ * @returns A promise resolving to the serialized representation.
+ */
 async function serializeFormData(formData: FormData): Promise<SerializedFormData> {
   const entries: SerializedFormDataEntry[] = [];
   for (const [name, value] of formData.entries()) {
@@ -172,6 +239,12 @@ async function serializeFormData(formData: FormData): Promise<SerializedFormData
   return { _isSerializedFormData: true, entries };
 }
 
+/**
+ * Performs a Venice API request through the desktop IPC bridge with retries.
+ * @param endpoint The Venice API endpoint.
+ * @param options Request options including method, body, signal, and dispatch.
+ * @returns A promise resolving to data, response, headers, and diagnostics.
+ */
 async function veniceFetchDesktop(
   endpoint: string,
   {
@@ -273,6 +346,12 @@ async function veniceFetchDesktop(
   throw lastError || new Error("Request failed");
 }
 
+/**
+ * Computes how long to wait before retrying a rate-limited request.
+ * @param headers The response headers containing rate-limit info.
+ * @param attempt The current retry attempt number.
+ * @returns The wait time in milliseconds.
+ */
 function computeRateLimitWait(headers: any, attempt: number) {
   // Prefer standard Retry-After header (seconds)
   const retryAfter = headers?.["retry-after"];
@@ -291,6 +370,12 @@ function computeRateLimitWait(headers: any, attempt: number) {
   return calculateBackoff(attempt, 2000, 16000);
 }
 
+/**
+ * Internal Venice API fetch implementation that routes to desktop or web mode.
+ * @param endpoint The Venice API endpoint.
+ * @param options Request options including method, body, signal, and dispatch.
+ * @returns A promise resolving to data, response, headers, and diagnostics.
+ */
 async function _veniceFetch(
   endpoint: string,
   {
@@ -460,6 +545,12 @@ async function _veniceFetch(
   throw lastError || new Error("Request failed");
 }
 
+/**
+ * Fetches data from the Venice API with automatic retries, deduplication, and diagnostics.
+ * @param endpoint The Venice API endpoint.
+ * @param options Request options including method, body, signal, dispatch, and retry flags.
+ * @returns A promise resolving to the parsed data, raw response, headers, and diagnostics.
+ */
 export async function veniceFetch(
   endpoint: string,
   options: {
@@ -489,6 +580,11 @@ export async function veniceFetch(
   return promise;
 }
 
+/**
+ * Streams a chat completion from the Venice API, yielding deltas via a callback.
+ * @param payload The chat completion request payload.
+ * @param options Streaming options including signal, dispatch, and onDelta callback.
+ */
 export async function veniceStreamChat(
   payload: any,
   {

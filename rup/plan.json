@@ -1,0 +1,111 @@
+{
+  "rup_version": "3.0.0",
+  "phase": "plan",
+  "repo_name": "venice-forge",
+  "planned_at": "2026-05-22T08:12:00-07:00",
+  "planning_agent": "kimi-code-cli",
+  "time_budget_minutes": 50,
+  "allocation": {
+    "P0": "65%",
+    "P1": "25%",
+    "P2": "10%",
+    "P3": "0%"
+  },
+  "phases": [
+    {
+      "name": "discovery",
+      "status": "completed",
+      "output": "rup/discovery.json"
+    },
+    {
+      "name": "planning",
+      "status": "completed",
+      "output": "rup/plan.json"
+    },
+    {
+      "name": "execution",
+      "status": "planned",
+      "items": [
+        {
+          "id": "EXEC-001",
+          "priority": "P0",
+          "finding_id": "DISC-001",
+          "title": "Fix release workflow action versions",
+          "action": "Replace `actions/checkout@v6` with `actions/checkout@v4` and `actions/setup-node@v6` with `actions/setup-node@v4` in `.github/workflows/windows-release.yml`.",
+          "files": [".github/workflows/windows-release.yml"],
+          "estimated_minutes": 2,
+          "rollback": "git checkout .github/workflows/windows-release.yml"
+        },
+        {
+          "id": "EXEC-002",
+          "priority": "P0",
+          "finding_id": "DISC-002",
+          "title": "Fix failing desktopBridge test by mocking indexedDB",
+          "action": "Import `fake-indexeddb/auto` at the top of `src/services/desktopBridge.test.ts` to polyfill `indexedDB` in the jsdom test environment.",
+          "files": ["src/services/desktopBridge.test.ts"],
+          "estimated_minutes": 5,
+          "rollback": "git checkout src/services/desktopBridge.test.ts"
+        },
+        {
+          "id": "EXEC-003",
+          "priority": "P1",
+          "finding_id": "DISC-003",
+          "title": "Add ESLint configuration",
+          "action": "Create `eslint.config.mjs` with TypeScript-ESLint, React hooks rules, and minimal sensible defaults. Add `eslint` and `@eslint/js`, `typescript-eslint`, `eslint-plugin-react-hooks` as devDependencies. Add `npm run lint:eslint` script.",
+          "files": ["eslint.config.mjs", "package.json"],
+          "estimated_minutes": 10,
+          "rollback": "git checkout package.json && rm eslint.config.mjs"
+        },
+        {
+          "id": "EXEC-004",
+          "priority": "P1",
+          "finding_id": "DISC-004",
+          "title": "Add Vitest coverage reporting",
+          "action": "Add `@vitest/coverage-v8` devDependency, add `npm run test:coverage` script, and create `vitest.config.ts` extending existing Vite config with coverage thresholds.",
+          "files": ["package.json", "vitest.config.ts"],
+          "estimated_minutes": 5,
+          "rollback": "git checkout package.json && rm vitest.config.ts"
+        },
+        {
+          "id": "EXEC-005",
+          "priority": "P2",
+          "finding_id": "DISC-005",
+          "title": "Add CodeQL security analysis workflow",
+          "action": "Create `.github/workflows/codeql.yml` with standard GitHub CodeQL init/analyze steps for JavaScript/TypeScript, running on push/PR to main and weekly cron.",
+          "files": [".github/workflows/codeql.yml"],
+          "estimated_minutes": 5,
+          "rollback": "rm .github/workflows/codeql.yml"
+        },
+        {
+          "id": "EXEC-006",
+          "priority": "P2",
+          "finding_id": "DISC-006",
+          "title": "Add lockfile integrity check to CI",
+          "action": "Update `.github/workflows/ci.yml` to run `npm ci --prefer-offline` and verify `package-lock.json` is in sync with `package.json`.",
+          "files": [".github/workflows/ci.yml"],
+          "estimated_minutes": 2,
+          "rollback": "git checkout .github/workflows/ci.yml"
+        },
+        {
+          "id": "EXEC-007",
+          "priority": "P2",
+          "finding_id": "DISC-008",
+          "title": "Update CHANGELOG.md with RUP execution entries",
+          "action": "Add an `[Unreleased]` section documenting the CI fix, test fix, ESLint addition, coverage addition, and CodeQL addition.",
+          "files": ["CHANGELOG.md"],
+          "estimated_minutes": 3,
+          "rollback": "git checkout CHANGELOG.md"
+        }
+      ]
+    },
+    {
+      "name": "verification",
+      "status": "planned",
+      "commands": [
+        "npm run typecheck",
+        "npm test",
+        "npm run build"
+      ]
+    }
+  ]
+}
