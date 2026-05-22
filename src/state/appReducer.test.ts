@@ -54,6 +54,22 @@ describe("appReducer", () => {
   });
 
   /**
+   * Sentinel regression guard: rejects primitive or array settings payloads.
+   *
+   * Verifies that string, array, and null values do not crash the reducer.
+   */
+  it("ignores non-object settings payloads", () => {
+    const stringState = appReducer(initialState, { type: "SET_SETTINGS", settings: "evil" as any });
+    expect(stringState.settings).toEqual(initialState.settings);
+
+    const arrayState = appReducer(initialState, { type: "SET_SETTINGS", settings: ["evil"] as any });
+    expect(arrayState.settings).toEqual(initialState.settings);
+
+    const nullState = appReducer(initialState, { type: "SET_SETTINGS", settings: null as any });
+    expect(nullState.settings).toEqual(initialState.settings);
+  });
+
+  /**
    * BUG-007 regression guard: coerces legacy boolean webSearch settings.
    *
    * Ensures true/false/invalid values become canonical "on"/"off" strings.

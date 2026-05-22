@@ -183,6 +183,8 @@ export const appReducer = produce((draft: typeof initialState, action: AppAction
       draft.selectedImageModel = action.model;
       break;
     case "SET_SETTINGS": {
+      // Defensive: ignore non-object payloads that could crash the `in` operator.
+      if (!action.settings || typeof action.settings !== "object" || Array.isArray(action.settings)) break;
       // Explicit property whitelist to prevent prototype pollution.
       const allowedKeys: (keyof typeof draft.settings)[] = [
         "defaultSystemPrompt", "includeVeniceSystemPrompt", "webSearch", "webScraping", "webCitations", "theme", "customModels",
