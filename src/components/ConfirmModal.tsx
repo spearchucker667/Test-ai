@@ -86,22 +86,23 @@ export function ConfirmModal({
     <div
       className="modal-backdrop"
       onClick={onCancel}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-modal-title"
+      role="presentation"
     >
       <div
         ref={modalRef}
         className="modal confirm-modal"
         onClick={(e) => e.stopPropagation()}
-        role="document"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
+        aria-describedby={detail ? "confirm-modal-detail" : undefined}
         style={{ maxWidth: 420, width: "100%", padding: 24 }}
       >
         <h2 id="confirm-modal-title" style={{ marginBottom: detail ? 8 : 20 }}>
           {message}
         </h2>
         {detail && (
-          <p className="small muted" style={{ marginBottom: 20 }}>
+          <p id="confirm-modal-detail" className="small muted" style={{ marginBottom: 20 }}>
             {detail}
           </p>
         )}

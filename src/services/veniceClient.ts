@@ -531,14 +531,22 @@ export async function veniceStreamChat(
     ? AbortSignal.any([signal, AbortSignal.timeout(STREAM_TIMEOUT_MS)])
     : AbortSignal.timeout(STREAM_TIMEOUT_MS);
 
-  const response = await fetch(`${PROXY_BASE_PATH}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-    signal: streamSignal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${PROXY_BASE_PATH}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: streamSignal,
+    });
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === "TimeoutError") {
+      throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
+    }
+    throw err;
+  }
 
   const headers = parseDiagnosticsHeaders(response);
   dispatch?.({
@@ -573,7 +581,16 @@ export async function veniceStreamChat(
 
   try {
     while (true) {
-      const { value, done } = await reader.read();
+      let result: ReadableStreamReadResult<Uint8Array>;
+      try {
+        result = await reader.read();
+      } catch (err: unknown) {
+        if (err instanceof DOMException && err.name === "TimeoutError") {
+          throw new Error("Stream timed out after 5 minutes. The server may be overloaded — please try again.");
+        }
+        throw err;
+      }
+      const { value, done } = result;
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
