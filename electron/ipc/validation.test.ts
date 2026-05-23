@@ -25,6 +25,17 @@ describe("Electron IPC validation", () => {
     ).toThrow(/method/i);
   });
 
+  /** BUG-010 regression guard: allowed methods must still match the endpoint. */
+  it("rejects allowed methods on the wrong Venice endpoint", () => {
+    expect(() =>
+      validateVeniceIpcRequest({ endpoint: "/models", method: "POST" })
+    ).toThrow(/method/i);
+
+    expect(() =>
+      validateVeniceIpcRequest({ endpoint: "/chat/completions", method: "GET" })
+    ).toThrow(/method/i);
+  });
+
   /** Rejects Venice IPC payloads that exceed the maximum body size. */
   it("rejects oversized Venice IPC payloads", () => {
     const tooLarge = "x".repeat(MAX_VENICE_IPC_BODY_BYTES + 1);

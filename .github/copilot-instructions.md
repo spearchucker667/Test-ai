@@ -4,7 +4,7 @@
 
 Venice Forge is a **Windows-first Electron desktop app** (also runnable as a Vite/Express web app) for the [Venice API](https://venice.ai). It provides chat, image generation, batch prompting, web research, model discovery, and a local image gallery — all privacy-focused with no telemetry.
 
-Stack: React 19 + TypeScript strict + Tailwind CSS v4 + Vite 6 (renderer), Electron 42 (desktop), Express 4 (web proxy), Vitest 4 (tests), esbuild (Electron main build).
+Stack: React 19 + TypeScript strict + Tailwind CSS v4 + Vite 6 (renderer), Electron 42 (desktop), Express 4 (web proxy), Vitest 4 (tests), tsc (Electron main build), esbuild (Express server bundle).
 
 ---
 
@@ -14,14 +14,22 @@ Stack: React 19 + TypeScript strict + Tailwind CSS v4 + Vite 6 (renderer), Elect
 npm run dev:electron    # Electron desktop (recommended for full dev)
 npm run dev:web         # Web mode only (Vite + Express)
 npm run typecheck       # Type-check renderer AND Electron main (both tsconfigs)
+npm run lint            # TypeScript linter (tsc --noEmit)
+npm run lint:eslint     # ESLint for src/, electron/, and server.ts
 npm test                # Vitest unit + integration tests (single run)
 npm run test:watch      # Vitest in watch mode
 npx vitest run src/services/veniceClient.test.ts   # Run a single test file
+npx vitest run server.test.ts -t "should block disallowed endpoints"  # Run one test case
+npm run test:coverage   # Vitest with coverage report
 npm run build           # Full build: web (dist/) + Electron main (dist-electron/)
+npm run build:web       # Renderer build only
+npm run build:server    # Express server bundle only
+npm run build:electron  # Electron main/preload build only
+npm run ci              # CI parity: npm ci + typecheck + test + build
 npm run clean           # Remove dist/, dist-electron/, release/
 ```
 
-`npm run lint` is an alias for `tsc --noEmit` — TypeScript strict mode is the linter.
+Before opening a PR, follow `CONTRIBUTING.md`: run `npm run typecheck`, `npm test`, and `npm run build`.
 
 ---
 
@@ -32,7 +40,7 @@ npm run clean           # Remove dist/, dist-electron/, release/
 The renderer (`src/`) runs identically in both modes. Transport is selected at runtime by `isElectron()` in `src/services/desktopBridge.ts`:
 
 - **Electron mode**: renderer calls `window.veniceForge.*` (the contextBridge API exposed by `electron/preload.ts`), which invokes IPC channels handled in `electron/ipc/handlers.ts`. The main process holds the API key in `safeStorage` and makes HTTPS calls directly to `api.venice.ai`.
-- **Web mode**: renderer calls `fetch('/api/venice/...')`, proxied by the Express server in `server.ts` to `api.venice.ai`. The API key lives in `.env`.
+- **Web mode**: renderer calls `fetch('/api/venice/...')`, proxied by the Express server in `server.ts` to `api.venice.ai`. The server injects `Authorization` from `VENICE_API_KEY` in `.env`. In web mode the Settings UI can also save a key to IndexedDB (used only for the "key configured" UI indicator — not forwarded to the proxy).
 
 All Venice API requests go through `src/services/veniceClient.ts` — `veniceFetch()` for non-streaming and `veniceStreamChat()` for chat streams. Both paths include up to 3 retries with exponential back-off for 429/500/503 responses.
 
@@ -42,13 +50,13 @@ Single global `useReducer` in `App.tsx` using `appReducer` from `src/state/appRe
 
 ### Storage
 
-- **IndexedDB** (`src/services/storageService.ts`): images, chats, settings. The `chats` and `settings` stores are encrypted at rest using `src/services/cryptoService.ts`.
+- **IndexedDB** (`src/services/storageService.ts`): images, chats, settings. All three stores are encrypted at rest using `src/services/cryptoService.ts` (AES-GCM).
 - **Electron `safeStorage`** (`electron/services/secureStore.ts`): API key only — encrypted by the OS keychain, never in plaintext.
 - **Exports**: versioned JSON with `{ version, exportedAt, appVersion, data }`. Import merges by ID, never clears; strips secret-like fields; validates schema and size.
 
 ### IPC surface (Electron)
 
-The renderer can only call the channels declared in `electron/preload.ts` via `window.veniceForge`. The allowed Venice endpoints and HTTP methods are enforced in both `src/shared/validation.ts` (web proxy) and `electron/ipc/validation.ts` (IPC handler). Renderer cannot choose arbitrary Venice endpoints or read the raw API key.
+The renderer can only call the channels declared in `electron/preload.ts` via `window.veniceForge`. The allowed Venice endpoints and HTTP methods are enforced in both `src/shared/validation.ts` (web proxy) and `electron/ipc/validation.ts` (IPC handler). In **Electron mode**, the renderer cannot choose arbitrary Venice endpoints or read the raw API key (it lives in `safeStorage` in the main process).
 
 ### Allowed Venice endpoints
 
@@ -91,7 +99,7 @@ Each tab is a self-contained module file in `src/modules/`. Modules receive `{ s
 
 ### Electron build pipeline
 
-`electron/` is compiled separately via `tsconfig.electron.json` (CommonJS output to `dist-electron/`). Run `npm run build:electron` after any change to `electron/`. The renderer builds via Vite with `ELECTRON_BUILD=true` to set `base: "./"` for relative asset paths.
+`electron/` is compiled separately via `tsconfig.electron.json` (CommonJS output to `dist-electron/`) using `tsc`. The Express server is bundled via esbuild (`server.ts` → `dist/server.cjs`). Run `npm run build:electron` after any change to `electron/`. The renderer builds via Vite with `ELECTRON_BUILD=true` to set `base: "./"` for relative asset paths.
 
 ### Security constraints
 

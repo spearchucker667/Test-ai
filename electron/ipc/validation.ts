@@ -10,6 +10,7 @@ import {
   ALLOWED_VENICE_METHODS,
   VeniceIpcEndpoint,
   VeniceIpcMethod,
+  isAllowedVeniceRequest,
 } from "../../src/shared/validation";
 import { VENICE_API_HOST } from "../../src/shared/apiConfig";
 
@@ -75,6 +76,9 @@ export function validateVeniceIpcRequest(input: unknown): VeniceIpcRequest {
   const method = typeof request.method === "string" ? request.method.toUpperCase() : "";
   if (!ALLOWED_VENICE_METHODS.includes(method as VeniceIpcMethod)) {
     throw new Error(`Venice method ${method || "missing"} is not allowed.`);
+  }
+  if (!isAllowedVeniceRequest(endpoint.pathname, method)) {
+    throw new Error(`Venice method ${method} is not allowed for endpoint ${endpoint.pathname}.`);
   }
   if (method === "GET" && request.body !== undefined) {
     throw new Error("GET Venice requests cannot include a body.");

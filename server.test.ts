@@ -61,6 +61,15 @@ describe("server.ts proxy validation", () => {
      expect(res.status).toBe(405);
   });
 
+  it("should block allowed methods on the wrong Venice endpoint", async () => {
+    // BUG-010 regression guard: method allowlist and endpoint allowlist must be paired.
+    const postModels = await request(app).post("/api/venice/models").send({});
+    expect(postModels.status).toBe(405);
+
+    const getChat = await request(app).get("/api/venice/chat/completions");
+    expect(getChat.status).toBe(405);
+  });
+
   it("should allow augment endpoints", async () => {
     // These were previously blocked (BUG-001). They should now pass validation
     // and fail upstream (502) rather than being rejected with 403.

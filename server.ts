@@ -5,7 +5,11 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import dotenv from "dotenv";
-import { ALLOWED_VENICE_ENDPOINTS, ALLOWED_VENICE_METHODS } from "./src/shared/validation";
+import {
+  ALLOWED_VENICE_ENDPOINTS,
+  ALLOWED_VENICE_METHODS,
+  isAllowedVeniceRequest,
+} from "./src/shared/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH, parsePositiveIntEnv } from "./src/shared/apiConfig";
 
 dotenv.config();
@@ -151,7 +155,9 @@ export function createServerApp() {
   });
 
   app.use("/api/venice", (req, res, next) => {
-    if (!ALLOWED_VENICE_METHODS.includes(req.method as any)) {
+    const method = req.method.toUpperCase();
+
+    if (!ALLOWED_VENICE_METHODS.includes(method as any)) {
        return res.status(405).json({ error: "Method not allowed" });
     }
     
@@ -159,6 +165,9 @@ export function createServerApp() {
     const isAllowed = ALLOWED_VENICE_ENDPOINTS.includes(req.path as any);
     if (!isAllowed) {
        return res.status(403).json({ error: `Endpoint ${req.path} not allowed` });
+    }
+    if (!isAllowedVeniceRequest(req.path, method)) {
+       return res.status(405).json({ error: `Method ${method} not allowed for endpoint ${req.path}` });
     }
     next();
   });
