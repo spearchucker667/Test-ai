@@ -61,6 +61,8 @@ export function flattenModels(payload: any) {
       id: m.id || m.model || m.name || "unknown-model",
       name: m.name || m.display_name || m.id || m.model || "unknown model",
       type: m.type || m.model_type || m.modelType || classifyModel(m),
+      isFallback: false,
+      source: "live" as const,
     };
     groups[classifyModel(normalized)].push(normalized);
   });
@@ -171,8 +173,38 @@ export const appReducer = produce((draft: typeof initialState, action: AppAction
       const models = withFallbackModels(action.models || {});
       draft.models = models;
       draft.usingFallbackModels = !!action.fallback;
-      draft.selectedChatModel = draft.selectedChatModel || models.text[0]?.id || "venice-uncensored";
-      draft.selectedImageModel = draft.selectedImageModel || models.image[0]?.id || "flux-dev";
+
+      const chatModelExists = models.text.some((m: any) => m.id === draft.selectedChatModel);
+      const imageModelExists = models.image.some((m: any) => m.id === draft.selectedImageModel);
+
+      if (!chatModelExists) {
+        const firstLive = models.text.find((m: any) => m.source === "live");
+        const fallback = models.text[0];
+        draft.selectedChatModel = firstLive?.id || fallback?.id || "venice-uncensored";
+        if (draft.selectedChatModel) {
+          draft.toasts.push({
+            id: crypto.randomUUID(),
+            message: `Previous chat model was unavailable. Switched to ${draft.selectedChatModel}.`,
+            type: "warn",
+            duration: 6000,
+          });
+        }
+      }
+
+      if (!imageModelExists) {
+        const firstLive = models.image.find((m: any) => m.source === "live");
+        const fallback = models.image[0];
+        draft.selectedImageModel = firstLive?.id || fallback?.id || "flux-dev";
+        if (draft.selectedImageModel) {
+          draft.toasts.push({
+            id: crypto.randomUUID(),
+            message: `Previous image model was unavailable. Switched to ${draft.selectedImageModel}.`,
+            type: "warn",
+            duration: 6000,
+          });
+        }
+      }
+
       draft.modelLoadError = action.error || "";
       break;
     }

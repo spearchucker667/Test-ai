@@ -5,7 +5,7 @@ import { extractImages } from "../utils/image";
 import { DIAG_HEADER_NAMES } from "../constants/venice";
 import { PROXY_BASE_PATH } from "../shared/apiConfig";
 import { desktopVenice, isElectron } from "./desktopBridge";
-import StorageService from "./storageService";
+
 
 /** Maximum allowed upload size in bytes (25 MiB). */
 export const MAX_SERIALIZED_UPLOAD_BYTES = 25 * 1024 * 1024;
@@ -405,9 +405,6 @@ async function _veniceFetch(
   const maxAttempts = retry ? 3 : 1;
   let lastError: any = null;
 
-  const settings = await StorageService.getItems("settings");
-  const manualApiKey = settings.find(i => i.id === "venice-api-key")?.value;
-
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
 
@@ -415,7 +412,6 @@ async function _veniceFetch(
       ...headers,
     };
     if (!isFormData) requestHeaders["Content-Type"] = "application/json";
-    if (manualApiKey) requestHeaders["Authorization"] = `Bearer ${manualApiKey}`;
 
     let response: Response | null = null;
     let diagHeaders: any = {};
@@ -624,13 +620,9 @@ export async function veniceStreamChat(
     return;
   }
 
-  const settings = await StorageService.getItems("settings");
-  const manualApiKey = settings.find(i => i.id === "venice-api-key")?.value;
-
   const requestHeaders: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  if (manualApiKey) requestHeaders["Authorization"] = `Bearer ${manualApiKey}`;
 
   // REL-001: always enforce a ceiling timeout on the streaming fetch so a stalled
   // SSE connection cannot block the web-mode renderer indefinitely. 5 minutes is

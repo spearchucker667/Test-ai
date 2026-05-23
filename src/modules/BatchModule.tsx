@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import StorageService from "../services/storageService";
 import { veniceFetch } from "../services/veniceClient";
 import { extractImages } from "../utils/image";
+import { isValidChatResponse } from "../utils/veniceValidation";
+import { normalizeImageDraft } from "../utils/payloadBuilders";
 import { downloadImage } from "../utils/download";
 import { desktopFiles } from "../services/desktopBridge";
 import { IMAGE_BATCH_INTER_REQUEST_DELAY_MS } from "../constants/venice";
@@ -47,6 +49,18 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
       .map((l: string) => l.trim())
       .filter(Boolean);
     if (!lines.length) return;
+    if (state.usingFallbackModels) {
+      dispatch({
+        type: "ADD_TOAST",
+        toast: {
+          id: crypto.randomUUID(),
+          message: "Fallback models are active. Please refresh the model catalog before running batch.",
+          type: "error",
+          duration: 6000,
+        },
+      });
+      return;
+    }
 
     const newResults = lines.map((p: string) => ({
       id: crypto.randomUUID(),
@@ -88,10 +102,13 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
             signal: abortRef.current.signal,
             dispatch,
           });
+          if (!isValidChatResponse(data)) {
+            throw new Error("Invalid chat response from server.");
+          }
           const content =
-            data?.choices?.[0]?.message?.content ||
-            data?.choices?.[0]?.text ||
-            JSON.stringify(data);
+            data.choices[0]?.message?.content ||
+            data.choices[0]?.text ||
+            "";
 
           await StorageService.saveItem("chats", {
             id: crypto.randomUUID(),
@@ -122,20 +139,21 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
           const images = extractImages(data);
           if (!images.length) throw new Error("No image data returned.");
 
+          const normalizedDraft = normalizeImageDraft(state.imageDraft);
           await StorageService.saveItem("images", {
             id: crypto.randomUUID(),
             image: images[0],
             prompt: newResults[i].prompt,
-            negative: state.imageDraft.negative,
+            negative: normalizedDraft.negative,
             model: state.selectedImageModel,
-            width: state.imageDraft.width,
-            height: state.imageDraft.height,
-            aspectRatio: state.imageDraft.aspectRatio,
-            style: state.imageDraft.style,
-            cfg: state.imageDraft.cfg,
-            steps: state.imageDraft.steps,
-            safeMode: state.imageDraft.safeMode,
-            disableWatermark: !!state.imageDraft.disableWatermark,
+            width: normalizedDraft.width,
+            height: normalizedDraft.height,
+            aspectRatio: normalizedDraft.aspectRatio,
+            style: normalizedDraft.style,
+            cfg: normalizedDraft.cfg,
+            steps: normalizedDraft.steps,
+            safeMode: normalizedDraft.safeMode,
+            disableWatermark: normalizedDraft.disableWatermark,
             timestamp: Date.now(),
           });
 
@@ -173,7 +191,11 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
   function cancel() {
     abortRef.current?.abort();
     setResults((prev) =>
-      prev.map((r) => (r.status === "running" ? { ...r, status: "cancelled" } : r))
+      prev.map((r) =>
+        r.status === "running" || r.status === "pending"
+          ? { ...r, status: "cancelled" }
+          : r
+      )
     );
     setIsRunning(false);
   }

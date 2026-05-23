@@ -5,6 +5,7 @@ import { DEFAULT_SYSTEM_PROMPT } from "../constants/venice";
 import { Markdown } from "../utils/markdown";
 import { copyText } from "../utils/download";
 import { buildChatPayload } from "../utils/payloadBuilders";
+import { isValidChatResponse } from "../utils/veniceValidation";
 import { Field } from "../components/Field";
 import { ModelSelect } from "../components/ModelSelect";
 import { ModelRefreshButton } from "../components/ModelRefreshButton";
@@ -55,6 +56,10 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
   async function send() {
     setPromptTouched(true);
     if (!userPrompt.trim() || loading) return;
+    if (state.usingFallbackModels) {
+      setError("Fallback models are active. Please refresh the model catalog before sending requests.");
+      return;
+    }
     setError("");
     setLoading(true);
 
@@ -123,10 +128,13 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
           signal: abortRef.current.signal,
           dispatch,
         });
+        if (!isValidChatResponse(data)) {
+          throw new Error("Invalid chat response from server.");
+        }
         const content =
-          data?.choices?.[0]?.message?.content ||
-          data?.choices?.[0]?.text ||
-          JSON.stringify(data);
+          data.choices[0]?.message?.content ||
+          data.choices[0]?.text ||
+          "";
         setMessages((prev) => {
           const next = [...prev];
           next[next.length - 1] = { ...next[next.length - 1], role: "assistant", content };

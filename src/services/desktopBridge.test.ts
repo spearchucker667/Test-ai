@@ -47,4 +47,18 @@ describe("desktopBridge web fallback", () => {
       desktopVenice.request({ endpoint: "/models", method: "GET" })
     ).rejects.toThrow(/desktop mode/i);
   });
+
+  /** Verifies that web mode refuses to store API keys locally. */
+  it("rejects setting API key in web mode", async () => {
+    vi.stubGlobal("window", { indexedDB: global.indexedDB });
+    await expect(desktopApiKey.set("vn-test-key")).rejects.toThrow(
+      /desktop-only/i
+    );
+  });
+
+  /** Verifies that deleting API key in web mode is a safe no-op. */
+  it("allows deleting API key in web mode as a no-op", async () => {
+    vi.stubGlobal("window", { indexedDB: global.indexedDB });
+    await expect(desktopApiKey.delete()).resolves.toEqual({ ok: true });
+  });
 });

@@ -224,62 +224,56 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       <div className="body grid">
 
         {/* API key management (Desktop uses SafeStorage, Web uses encrypted IndexedDB) */}
-        <div className="panel pad">
-          <div className="panel-header">
-            <div className="panel-title">Venice API Key</div>
-            <Chip tone={apiKeyConfigured ? "ok" : "warn"}>
-              {apiKeyConfigured ? "Configured" : "Not set"}
-            </Chip>
+        {isElectron() ? (
+          <div className="panel pad">
+            <div className="panel-header">
+              <div className="panel-title">Venice API Key</div>
+              <Chip tone={apiKeyConfigured ? "ok" : "warn"}>
+                {apiKeyConfigured ? "Configured" : "Not set"}
+              </Chip>
+            </div>
+            <div className="notice small">
+              Your key is stored using OS-level encryption (Windows DPAPI / macOS Keychain) and is never exposed to the renderer.
+            </div>
+            <div className="grid two" style={{ marginTop: 12 }}>
+              <Field label="Enter Venice API key">
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="vn-…"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </Field>
+              <Field label="Actions">
+                <div className="chip-row">
+                  <button className="btn primary" onClick={saveApiKey} disabled={!apiKeyInput.trim()}>
+                    Save key
+                  </button>
+                  <button className="btn" onClick={testApiKey} disabled={apiKeyTesting || !apiKeyConfigured}>
+                    {apiKeyTesting ? "Testing…" : "Test connection"}
+                  </button>
+                  <button className="btn danger" onClick={deleteApiKey} disabled={!apiKeyConfigured}>
+                    Delete key
+                  </button>
+                </div>
+              </Field>
+            </div>
           </div>
-          <div className="notice small">
-            {isElectron() 
-              ? "Your key is stored using OS-level encryption (Windows DPAPI / macOS Keychain) and is never exposed to the renderer."
-              : "Your key is stored in your browser's encrypted IndexedDB and is sent only to the Venice API proxy."
-            }
-          </div>
-          <div className="grid two" style={{ marginTop: 12 }}>
-            <Field label="Enter Venice API key">
-              <input
-                type="password"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="vn-…"
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </Field>
-            <Field label="Actions">
-              <div className="chip-row">
-                <button className="btn primary" onClick={saveApiKey} disabled={!apiKeyInput.trim()}>
-                  Save key
-                </button>
-                <button className="btn" onClick={testApiKey} disabled={apiKeyTesting || !apiKeyConfigured}>
-                  {apiKeyTesting ? "Testing…" : "Test connection"}
-                </button>
-                <button className="btn danger" onClick={deleteApiKey} disabled={!apiKeyConfigured}>
-                  Delete key
-                </button>
-              </div>
-            </Field>
-          </div>
-        </div>
-
-        {/* Web mode notice */}
-        {!isElectron() && (
-          <div className="notice small">
-            {apiKeyConfigured 
-              ? "Local key mode: Your manual API key is being sent to the proxy. Remove it to revert to server-side environment key."
-              : "Proxy mode: Venice API calls are proxied through the server using the server's environment API key."
-            }
+        ) : (
+          <div className="panel pad">
+            <div className="panel-header">
+              <div className="panel-title">Venice API Key</div>
+              <Chip tone="ok">Server key</Chip>
+            </div>
+            <div className="notice small">
+              Web mode uses the server .env key only. Manual local keys are desktop-only.
+            </div>
           </div>
         )}
 
         <div className="grid two">
-          {!isElectron() && (
-            <Field label="API key status">
-              <input readOnly value={apiKeyConfigured ? "Using manual local key" : "Using server environment key"} />
-            </Field>
-          )}
           <Field label="Default web search">
             <select
               value={webSearch}

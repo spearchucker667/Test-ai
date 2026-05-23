@@ -86,6 +86,55 @@ export interface ImageDraftLike {
   style?: string;
   safeMode?: boolean;
   disableWatermark?: boolean;
+  imageCount?: number | string;
+}
+
+/** Clamp a number to an inclusive integer range. */
+function clampInt(value: unknown, min: number, max: number): number {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(max, n));
+}
+
+/** Clamp a number to an inclusive float range. */
+function clampFloat(value: unknown, min: number, max: number): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(max, n));
+}
+
+/** Round a dimension to the nearest valid multiple (64px for most SD pipelines). */
+function clampDimension(value: unknown): number {
+  const n = clampInt(value, 64, 2048);
+  return Math.round(n / 64) * 64;
+}
+
+/** Maximum prompt length accepted by Venice image generation (conservative). */
+const MAX_IMAGE_PROMPT_LENGTH = 4000;
+
+/**
+ * Normalizes and clamps an image draft so invalid UI or imported state
+ * cannot produce out-of-range API requests.
+ *
+ * @param draft The raw image draft.
+ * @returns A normalized draft with safe values.
+ */
+export function normalizeImageDraft(draft: ImageDraftLike): ImageDraftLike {
+  const prompt = String(draft.prompt ?? "").trim();
+  const negative = String(draft.negative ?? "").trim();
+  return {
+    prompt: prompt.slice(0, MAX_IMAGE_PROMPT_LENGTH),
+    negative: negative.slice(0, MAX_IMAGE_PROMPT_LENGTH),
+    width: clampDimension(draft.width),
+    height: clampDimension(draft.height),
+    aspectRatio: draft.aspectRatio || "1:1",
+    steps: clampInt(draft.steps, 1, 50),
+    cfg: clampFloat(draft.cfg, 1, 20),
+    style: draft.style ?? "",
+    safeMode: !!draft.safeMode,
+    disableWatermark: !!draft.disableWatermark,
+    imageCount: clampInt(draft.imageCount, 1, 10),
+  };
 }
 
 /**
@@ -101,20 +150,21 @@ export function buildImagePayload(
   draft: ImageDraftLike,
   promptOverride?: string
 ): Record<string, unknown> {
+  const normalized = normalizeImageDraft(draft);
   const payload: Record<string, unknown> = {
     model,
-    prompt: (promptOverride ?? draft.prompt).trim(),
-    width: Number(draft.width) || 512,
-    height: Number(draft.height) || 512,
-    aspect_ratio: draft.aspectRatio || "1:1",
-    steps: Number(draft.steps) || 20,
-    cfg_scale: Number(draft.cfg) || 7,
-    safe_mode: !!draft.safeMode,
-    hide_watermark: !!draft.disableWatermark,
+    prompt: (promptOverride ?? normalized.prompt).trim(),
+    width: normalized.width,
+    height: normalized.height,
+    aspect_ratio: normalized.aspectRatio,
+    steps: normalized.steps,
+    cfg_scale: normalized.cfg,
+    safe_mode: normalized.safeMode,
+    hide_watermark: normalized.disableWatermark,
     return_binary: false,
   };
-  const negative = draft.negative?.trim();
+  const negative = normalized.negative?.trim();
   if (negative) payload.negative_prompt = negative;
-  if (draft.style) payload.style_preset = draft.style;
+  if (normalized.style) payload.style_preset = normalized.style;
   return payload;
 }

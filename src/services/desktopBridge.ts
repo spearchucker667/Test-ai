@@ -3,7 +3,6 @@
 // Code Owner: fayeblade (@spearchucker667)
 import "../types/desktop";
 import type { VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
-import StorageService from "./storageService";
 import { veniceFetch } from "./veniceClient";
 
 /**
@@ -97,8 +96,7 @@ export const desktopApiKey = {
    */
   async isConfigured(): Promise<boolean> {
     if (isElectron()) return window.veniceForge!.apiKey.isConfigured();
-    const items = await StorageService.getItems("settings");
-    return items.some((item) => item.id === "venice-api-key" && !!item.value);
+    return false;
   },
 
   /**
@@ -108,12 +106,7 @@ export const desktopApiKey = {
    */
   async set(key: string): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.apiKey.set(key);
-    await StorageService.saveItem("settings", {
-      id: "venice-api-key",
-      value: key,
-      timestamp: Date.now(),
-    });
-    return { ok: true };
+    throw new Error("API key storage is desktop-only. Web mode uses the server .env key.");
   },
 
   /**
@@ -122,7 +115,6 @@ export const desktopApiKey = {
    */
   async delete(): Promise<{ ok: boolean }> {
     if (isElectron()) return window.veniceForge!.apiKey.delete();
-    await StorageService.deleteItem("settings", "venice-api-key");
     return { ok: true };
   },
 

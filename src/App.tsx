@@ -73,8 +73,8 @@ export default function App() {
           dispatch({ type: "SET_SETTINGS", settings: latestSettings });
         
         if (!isElectron()) {
-          const hasKey = settingsItems.some(i => i.id === "venice-api-key" && !!i.value);
-          setApiKeyConfigured(hasKey);
+          // Web mode uses the server-side .env key; no local key check needed.
+          setApiKeyConfigured(true);
         }
       } catch (err) {
         console.warn("IndexedDB init failed", err);

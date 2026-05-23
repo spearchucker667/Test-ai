@@ -7,7 +7,7 @@ import { extractImages, galleryFilename } from "../utils/image";
 import { downloadImage } from "../utils/download";
 import { upscaleGalleryImage, saveImageRecord as saveRecordService, refreshGallery } from "../services/imageWorkflowService";
 import { IMAGE_BATCH_INTER_REQUEST_DELAY_MS } from "../constants/venice";
-import { buildImagePayload } from "../utils/payloadBuilders";
+import { buildImagePayload, normalizeImageDraft } from "../utils/payloadBuilders";
 import { DiagPreview } from "../components/DiagnosticsPreview";
 import { StatusBlock } from "../components/StatusBlock";
 import { ImageActionModal } from "../components/ImageActionModal";
@@ -65,13 +65,18 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
   async function generate() {
     setPromptTouched(true);
     if (!draft.prompt.trim() || loading) return;
+    if (state.usingFallbackModels) {
+      setError("Fallback models are active. Please refresh the model catalog before sending requests.");
+      return;
+    }
     setError("");
     setSuccess("");
     setLoading(true);
     abortRef.current = new AbortController();
     const signal = abortRef.current.signal;
 
-    const batchCount = Number(draft.imageCount) || 1;
+    const normalizedDraft = normalizeImageDraft(draft);
+    const batchCount = normalizedDraft.imageCount as number;
     const batchId = crypto.randomUUID();
     let successCount = 0;
     const delay = (ms: number, sig: AbortSignal) => new Promise<void>((resolve, reject) => {
@@ -94,7 +99,7 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
           patch({ generationProgress: `Generating image ${i + 1} of ${batchCount}...` });
         }
 
-        const payload = buildImagePayload(state.selectedImageModel, draft);
+        const payload = buildImagePayload(state.selectedImageModel, normalizedDraft);
         let resRaw;
         try {
           resRaw = await veniceFetch("/image/generate", { method: "POST", body: payload, signal, dispatch });

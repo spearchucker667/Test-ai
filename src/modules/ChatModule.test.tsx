@@ -86,7 +86,7 @@ describe("ChatModule", () => {
       data: { choices: [{ message: { content: "Hello from Venice!" } }] },
     } as any);
 
-    renderChat();
+    renderChat({ usingFallbackModels: false });
 
     await userEvent.type(screen.getByRole("textbox", promptSelector), "What is the weather?");
     await userEvent.click(screen.getByRole("button", sendBtnSelector));
@@ -106,7 +106,7 @@ describe("ChatModule", () => {
   it("calls veniceStreamChat when streaming is enabled", async () => {
     vi.mocked(veniceStreamChat).mockResolvedValue(undefined);
 
-    renderChat();
+    renderChat({ usingFallbackModels: false });
 
     // "Model & Settings" section is collapsed by default — expand it to access the checkboxes.
     await userEvent.click(screen.getByRole("button", { name: /model.*settings/i }));
@@ -128,13 +128,29 @@ describe("ChatModule", () => {
       new Error("503 Service Unavailable")
     );
 
-    renderChat();
+    renderChat({ usingFallbackModels: false });
 
     await userEvent.type(screen.getByRole("textbox", promptSelector), "Trigger an error");
     await userEvent.click(screen.getByRole("button", sendBtnSelector));
 
     await waitFor(() => {
       expect(screen.getByText(/503 service unavailable/i)).toBeInTheDocument();
+    });
+  });
+
+  // BUG-002 regression guard: invalid response shape must not leak raw JSON.
+  it("shows a user-readable error for invalid chat response shapes", async () => {
+    vi.mocked(veniceFetch).mockResolvedValue({
+      data: { id: "invalid", error: "model not found" },
+    } as any);
+
+    renderChat({ usingFallbackModels: false });
+
+    await userEvent.type(screen.getByRole("textbox", promptSelector), "Trigger invalid shape");
+    await userEvent.click(screen.getByRole("button", sendBtnSelector));
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid chat response from server/i)).toBeInTheDocument();
     });
   });
 });
