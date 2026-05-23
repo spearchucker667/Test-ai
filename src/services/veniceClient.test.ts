@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for veniceClient utility functions. */
 
 import { describe, expect, it } from "vitest";
-import { summarizeDiagnostics, normalizeError, readWebErrorBody } from "./veniceClient";
+import { summarizeDiagnostics, normalizeError, readWebErrorBody, extractModelName } from "./veniceClient";
 
 /** Tests for the veniceClient utility functions. */
 describe("veniceClient utilities", () => {
@@ -39,6 +39,45 @@ describe("veniceClient utilities", () => {
       });
       expect(result.latencyMs).toBeNull();
       expect(result.error).toBe("network error");
+    });
+
+    /** Verifies that model is populated if provided. */
+    it("includes model when provided", () => {
+      const result = summarizeDiagnostics({
+        endpoint: "/chat/completions",
+        method: "POST",
+        status: 200,
+        ok: true,
+        model: "venice-uncensored",
+      });
+      expect(result.model).toBe("venice-uncensored");
+    });
+  });
+
+  /** Tests for extractModelName. */
+  describe("extractModelName", () => {
+    it("extracts from response body model field", () => {
+      expect(extractModelName(null, { model: "model-res" })).toBe("model-res");
+    });
+
+    it("extracts from request body model field", () => {
+      expect(extractModelName({ model: "model-req" }, null)).toBe("model-req");
+    });
+
+    it("extracts from serialized FormData", () => {
+      expect(
+        extractModelName(
+          {
+            _isSerializedFormData: true,
+            entries: [{ name: "model", value: "model-form" }],
+          },
+          null
+        )
+      ).toBe("model-form");
+    });
+
+    it("returns null if not found", () => {
+      expect(extractModelName({}, {})).toBeNull();
     });
   });
 

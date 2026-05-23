@@ -90,6 +90,32 @@ function parseDiagnosticsHeaders(response: Response) {
 }
 
 /**
+ * Extracts the model identifier from request or response payloads.
+ * @param requestBody The serialized request body.
+ * @param responseBody The parsed response body.
+ * @returns The model identifier if found, otherwise null.
+ */
+export function extractModelName(requestBody: any, responseBody: any): string | null {
+  if (responseBody && typeof responseBody === "object") {
+    if (typeof responseBody.model === "string") return responseBody.model;
+  }
+  if (requestBody) {
+    if (typeof requestBody.get === "function") {
+      const val = requestBody.get("model");
+      if (typeof val === "string") return val;
+    }
+    if (typeof requestBody === "object") {
+      if (requestBody._isSerializedFormData && Array.isArray(requestBody.entries)) {
+        const entry = requestBody.entries.find((e: any) => e.name === "model");
+        if (entry && typeof entry.value === "string") return entry.value;
+      }
+      if (typeof requestBody.model === "string") return requestBody.model;
+    }
+  }
+  return null;
+}
+
+/**
  * Summarizes request metadata into a diagnostic snapshot.
  * @param params The raw request and response fields.
  * @returns A normalized diagnostics object with latency and header info.
@@ -103,6 +129,7 @@ export function summarizeDiagnostics({
   error,
   startedAt,
   endedAt,
+  model,
 }: any) {
   return {
     endpoint,
@@ -117,6 +144,7 @@ export function summarizeDiagnostics({
         ? new Date(endedAt).getTime() - new Date(startedAt).getTime()
         : null,
     headers: headers || {},
+    model: model || null,
   };
 }
 
@@ -280,8 +308,8 @@ async function veniceFetchDesktop(
         },
         signal
       );
-      diagHeaders = response.headers || {};
       const errorMsg = response.ok ? "" : normalizeError(response.status, readDesktopErrorBody(response.body));
+      const modelName = extractModelName(serializedBody, response.body);
       const diag = summarizeDiagnostics({
         endpoint,
         method,
@@ -291,6 +319,7 @@ async function veniceFetchDesktop(
         error: errorMsg,
         startedAt,
         endedAt: nowIso(),
+        model: modelName,
       });
       dispatch?.({ type: "SET_DIAGNOSTICS", diagnostics: diag });
 
@@ -330,6 +359,7 @@ async function veniceFetchDesktop(
             error: normalized,
             startedAt,
             endedAt: nowIso(),
+            model: extractModelName(serializedBody, response?.body),
           }),
         });
       }
@@ -415,6 +445,7 @@ async function _veniceFetch(
 
     let response: Response | null = null;
     let diagHeaders: any = {};
+    let parsed: any = null;
     try {
       const fetchSignal = signal
         ? AbortSignal.any([signal, AbortSignal.timeout(60000)])
@@ -432,7 +463,6 @@ async function _veniceFetch(
 
       diagHeaders = parseDiagnosticsHeaders(response);
 
-      let parsed: any;
       let text = "";
       const contentType = response.headers.get("content-type") || "";
       if (contentType.includes("application/json")) {
@@ -465,6 +495,7 @@ async function _veniceFetch(
         }
       }
 
+      const modelName = extractModelName(body, parsed);
       const diag = summarizeDiagnostics({
         endpoint,
         method,
@@ -474,6 +505,7 @@ async function _veniceFetch(
         error: response.ok ? "" : normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText)),
         startedAt,
         endedAt: nowIso(),
+        model: modelName,
       });
       dispatch?.({ type: "SET_DIAGNOSTICS", diagnostics: diag });
 
@@ -522,6 +554,7 @@ async function _veniceFetch(
             error: normalized,
             startedAt,
             endedAt: nowIso(),
+            model: extractModelName(body, parsed),
           }),
         });
       }
@@ -612,6 +645,7 @@ export async function veniceStreamChat(
         error: "",
         startedAt,
         endedAt: nowIso(),
+        model: payload?.model,
       }),
     });
     if (!response.ok) {
@@ -659,6 +693,7 @@ export async function veniceStreamChat(
       error: "",
       startedAt,
       endedAt: nowIso(),
+      model: payload?.model,
     }),
   });
 

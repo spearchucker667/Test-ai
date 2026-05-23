@@ -194,7 +194,8 @@ export function DiagnosticsModule({ state, dispatch, apiKeyConfigured }: Diagnos
               <div className="model-item">
                 <div className="tiny muted">Model</div>
                 <div className="mono small">
-                  {d.headers?.["x-venice-model-id"] ||
+                  {d.model ||
+                    d.headers?.["x-venice-model-id"] ||
                     d.headers?.["x-venice-model-name"] ||
                     "not present"}
                 </div>
