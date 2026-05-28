@@ -105,7 +105,7 @@ function isAllowedAppNavigation(url: string): boolean {
     const parsed = new URL(url);
     if (isDev) return parsed.origin === "http://localhost:5173";
     if (parsed.protocol !== "file:") return false;
-    const rendererRoot = path.resolve(__dirname, "../dist");
+    const rendererRoot = path.resolve(__dirname, "../../dist");
     // Normalize to resolve ".." and symlinks, then verify strict containment.
     const targetPath = path.normalize(fileURLToPath(parsed));
     const normalizedRoot = path.normalize(rendererRoot);
@@ -166,7 +166,7 @@ function createWindow(): BrowserWindow {
     win.loadURL("http://localhost:5173").catch((err) => logError("Failed to load Vite dev server", err));
     win.webContents.openDevTools({ mode: "detach" });
   } else {
-    win.loadFile(path.join(__dirname, "../dist/index.html")).catch((err) => {
+    win.loadFile(path.join(__dirname, "../../dist/index.html")).catch((err) => {
       logError("Failed to load production renderer", err);
     });
   }

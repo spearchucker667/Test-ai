@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { Chip } from "./Chip";
 import { GalleryImage } from "../types/storage";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface ImageActionModalProps {
   image: GalleryImage | null;
@@ -41,35 +42,7 @@ export function ImageActionModal({
     };
   }, [image]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
-      }
-      if (e.key !== "Tab" || !modalRef.current) return;
-      const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault();
-          last?.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
-        }
-      }
-    };
-    if (image) {
-      window.addEventListener("keydown", handleKeyDown);
-    }
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [image, onClose]);
+  useFocusTrap(modalRef, !!image, onClose);
 
   if (!image) return null;
 
@@ -77,15 +50,15 @@ export function ImageActionModal({
     <div
       className="modal-backdrop"
       onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
+      role="presentation"
     >
       <div
         ref={modalRef}
         className="modal image-modal"
         onClick={(e) => e.stopPropagation()}
-        role="document"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
       >
         <div className="modal-image">
           <img src={image.image} alt={image.prompt} />

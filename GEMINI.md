@@ -6,7 +6,7 @@
 
 ## 1. Project Overview & Architecture
 
-Venice Forge is a privacy-first AI creator studio client for the [Venice API](https://venice.ai). It is built as a **Windows-first Electron desktop application**, but supports running in a **web proxy development mode**.
+Venice Forge is a privacy-first AI creator studio client for the [Venice API](https://venice.ai). It is built as a **dual-platform Windows and macOS Electron desktop application**, but supports running in a **web proxy development mode**.
 
 ### The Dual-Transport Architecture
 A single React renderer codebase runs in both environments. Transport routing is resolved at runtime using `isElectron()` from `src/services/desktopBridge.ts`:

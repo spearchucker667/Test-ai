@@ -134,20 +134,19 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
         <div className="gallery">
           {state.gallery.map((item: GalleryImage, index: number) => (
             <div className="gallery-card" key={item.id}>
-              <img
-                src={item.image}
-                alt={item.prompt || "Generated image"}
-                tabIndex={0}
-                role="button"
-                aria-label={`View image details: ${item.prompt || "Generated image"}`}
+              <button
+                type="button"
                 onClick={() => setExpanded(item)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setExpanded(item);
-                  }
-                }}
-              />
+                aria-label={`View image details: ${item.prompt || "Generated image"}`}
+                aria-haspopup="dialog"
+                aria-expanded={expanded?.id === item.id}
+                style={{ padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', width: '100%', display: 'block' }}
+              >
+                <img
+                  src={item.image}
+                  alt={item.prompt || "Generated image"}
+                />
+              </button>
               <div className="meta">
                 <div className="small">
                   <strong>{item.model}</strong>{" "}

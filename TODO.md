@@ -46,6 +46,9 @@ This backlog reflects the current repository state. Completed items from earlier
 | A11Y-001 | P1 | Done | Modal focus trapping and keyboard flows | `ImageActionModal.tsx`: Tab cycling and Escape were already in place. Added return-focus: captures `document.activeElement` before opening, restores it on close. |
 | A11Y-002 | P1 | Done | Toast and error announcements in screen readers | `ToastHost` uses `role="alert"` + `aria-live="assertive"` for errors and `role="status"` + `aria-live="polite"` for info/success. `StatusBlock` mirrors the same pattern. No changes required. |
 | A11Y-003 | P2 | Done | Captions/labels on diagnostics tables | Only one `<table>` exists in the codebase (`DiagnosticsModule`); it already carries `<caption className="sr-only">Venice API response headers</caption>`. No changes required. |
+| A11Y-004 | P1 | Done | Unified focus trapping | Added `useFocusTrap` hook. Integrated into `ConfirmModal` and `ImageActionModal` along with proper ARIA roles. |
+| A11Y-005 | P1 | Done | Form field label linking | Refactored `Field.tsx` to generate accessible `<label htmlFor={id}>` mappings using `useId()`. |
+| A11Y-006 | P1 | Done | Gallery image keyboard accessibility | Replaced `div/img` `onClick` handlers with native `<button>` wrappers for full keyboard navigation and screen reader support. |
 | UX-001 | P2 | Done | Progress/cancel affordance for bulk gallery download | `imageWorkflowService.ts`: `downloadAllGallery` now accepts `onProgress` and `cancelSignal` options. `GalleryModule.tsx`: toolbar shows live `Saving N/M…` counter and a **Cancel** button while a bulk download is in progress. |
 
 ## Integration
@@ -67,6 +70,7 @@ This backlog reflects the current repository state. Completed items from earlier
 | BUG-007 | P0 | Done | Legacy boolean `webSearch` values could still produce invalid chat payloads | `appReducer.ts` now coerces legacy boolean/imported values to valid enum strings (`off`/`on`/`auto`), and `buildChatPayload` enforces the same normalization before sending. |
 | BUG-008 | P1 | Done | Electron text-parser FormData uploads were not using serialized IPC payload | `veniceFetchDesktop` now sends `serializedBody` across IPC for `isFormData` requests, restoring reliable `/augment/text-parser` uploads in desktop mode. |
 | BUG-009 | P2 | Done | Web transport showed duplicate diagnostics and weak schema-error parsing on non-2xx responses | Web path in `veniceClient.ts` now parses Venice `DetailedError` format and avoids catch-path re-dispatch when an HTTP diagnostics entry already exists. |
+| BUG-010 | P0 | Done | "White screen and autocrash" on launch due to missing index.html | Fixed path resolution `../dist` to `../../dist` in `electron/main.ts` because transpilation deposits `main.js` into `dist-electron/electron/` instead of `dist-electron/`. |
 
 ## Deep Scan Findings
 
@@ -85,6 +89,7 @@ This backlog reflects the current repository state. Completed items from earlier
 | DSC-009 | Minor | Done | **Batch cancellation leaves active task stuck in "running" state** — `cancel()` didn't update in-flight task status. | Fixed: `cancel()` now transitions all `"running"` results to `"cancelled"` before clearing `isRunning`. |
 | DSC-010 | Minor | Done | **Dead code: `ab2str` and `str2ab` in cryptoService** — unused helper functions. | Fixed: both functions removed. |
 | DSC-011 | Minor | Done | **TextEncoder allocation overhead in `byteLength`** — `new TextEncoder().encode(value).length` allocated a full copy. | Fixed: replaced with `new Blob([value]).size`. |
+| DSC-012 | Minor | Done | **TS18046 error in Field.tsx** — `children.props` accessed unsafely on `ReactNode`. | Fixed: Used `React.isValidElement(children)` and casted to `React.ReactElement<any>`. |
 
 ## Verification Commands
 

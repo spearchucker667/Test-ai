@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-Venice Forge is a **Windows-first Electron desktop application** that provides a private AI creation studio for the [Venice API](https://venice.ai). It supports streaming chat, image generation, batch prompting, web research, model discovery, a local image gallery, and data import/export.
+Venice Forge is a **dual-platform (Windows & macOS) Electron desktop application** that provides a private AI creation studio for the [Venice API](https://venice.ai). It supports streaming chat, image generation, batch prompting, web research, model discovery, a local image gallery, and data import/export.
 
 The project is designed to run in **two modes** from a single renderer codebase:
 
@@ -20,7 +20,7 @@ Key design goals: privacy by default (API keys never reach the renderer), offlin
 | UI | React 19, TypeScript strict mode, Tailwind CSS v4 |
 | Build tool (renderer) | Vite 6 |
 | Desktop shell | Electron 42 |
-| Packaging | electron-builder 26 (Windows NSIS installer + portable `.exe`) |
+| Packaging | electron-builder 26 (Windows NSIS + portable, macOS DMG + ZIP) |
 | Web proxy (dev) | Express 4, `http-proxy-middleware` 4 |
 | State management | React `useReducer` + Immer |
 | Storage | IndexedDB (`StorageService`) for images, chats, settings; Electron `safeStorage` for the API key |
@@ -28,7 +28,7 @@ Key design goals: privacy by default (API keys never reach the renderer), offlin
 | Build (Electron main) | `tsc` (CommonJS → `dist-electron/`) |
 | Build (server) | esbuild (`server.ts` → `dist/server.cjs`) |
 
-Requirements: Node.js 20 or 22, npm 10+, Windows 10/11 for release builds.
+Requirements: Node.js 20 or 22, npm 10+, Windows 10/11 or macOS for release builds.
 
 ## Project Structure
 
@@ -95,9 +95,9 @@ npx vitest run <path>      # Run a single test file
 
 # Packaging
 npm run dist:win           # Build + create Windows NSIS installer and portable .exe
-npm run dist:portable      # Build + create portable .exe only
-npm run dist               # Same as dist:win
-npm run verify:icon        # Ensure build/icon.ico exists
+npm run dist:mac           # Build + create macOS DMG and ZIP
+npm run dist               # Windows defaults (NSIS)
+npm run verify:icon        # Ensure build/icon.ico and icon.icns exists
 npm run verify:dist        # Validate release/ artifacts
 
 # Maintenance
