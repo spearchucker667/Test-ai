@@ -1,13 +1,12 @@
 /** @fileoverview Unit tests for StorageService IndexedDB operations. */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
-// @ts-ignore — fake-indexeddb ESM exports lack proper typings
+// @ts-expect-error — fake-indexeddb ESM exports lack proper typings
 import FDBFactory from "fake-indexeddb/lib/FDBFactory";
 import StorageService from "./storageService";
 
 /** Resets the IndexedDB instance and StorageService state before each test. */
 beforeEach(() => {
-  // @ts-ignore
   global.indexedDB = new FDBFactory();
   StorageService.db = null;
 });

@@ -83,7 +83,7 @@ All commands and validations must pass before opening a PR. Note that Windows re
 
 - TypeScript **strict mode** is enforced. Avoid `any`; use proper types.
 - Use `function` declarations for modules, not arrow functions.
-- CSS classes use kebab-case.
+- CSS styling relies on Tailwind v4 utility classes inline with JSX, following the "Premium Dark Glass" theme.
 - Keep changes minimal and focused.
 
 ## Security

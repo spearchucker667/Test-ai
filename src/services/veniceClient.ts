@@ -1,17 +1,18 @@
 /** @fileoverview Single entry point for all Venice API calls from the renderer. */
 
 // Code Owner: fayeblade (@spearchucker667)
-import { extractImages } from "../utils/image";
 import { DIAG_HEADER_NAMES } from "../constants/venice";
 import { PROXY_BASE_PATH } from "../shared/apiConfig";
 import { desktopVenice, isElectron } from "./desktopBridge";
-
+import type { VeniceForgeResponse } from "../types/desktop";
+import type { DiagnosticsEntry } from "../types/venice";
+import type { AppDispatch } from "../types/app";
 
 /** Maximum allowed upload size in bytes (25 MiB). */
 export const MAX_SERIALIZED_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 /** In-flight request deduplication map (API-004). */
-const inFlight = new Map<string, Promise<any>>();
+const inFlight = new Map<string, Promise<{ data: unknown; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }>>();
 
 /**
  * Generates a deduplication key from request parameters.
@@ -37,7 +38,7 @@ function nowIso() {
  * Pauses execution for a given duration, optionally respecting an abort signal.
  * @param ms The number of milliseconds to sleep.
  * @param signal An optional abort signal to cancel the sleep early.
- * @returns A promise that resolves after the delay or rejects if aborted.
+ * @returns A promise that restores after the delay or rejects if aborted.
  */
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -90,29 +91,66 @@ function parseDiagnosticsHeaders(response: Response) {
 }
 
 /**
+ * Serialized entry type for Form Data payload.
+ */
+interface SerializedFormDataEntry {
+  name: string;
+  value: string;
+  filename?: string;
+  type?: string;
+  _isFile?: boolean;
+}
+
+/**
+ * Serialized FormData type.
+ */
+interface SerializedFormData {
+  _isSerializedFormData: boolean;
+  entries: SerializedFormDataEntry[];
+}
+
+/**
  * Extracts the model identifier from request or response payloads.
- * @param requestBody The serialized request body.
+ * @param requestBody The request body.
  * @param responseBody The parsed response body.
  * @returns The model identifier if found, otherwise null.
  */
-export function extractModelName(requestBody: any, responseBody: any): string | null {
+export function extractModelName(requestBody: unknown, responseBody: unknown): string | null {
   if (responseBody && typeof responseBody === "object") {
-    if (typeof responseBody.model === "string") return responseBody.model;
+    const resp = responseBody as Record<string, unknown>;
+    if (typeof resp.model === "string") return resp.model;
   }
   if (requestBody) {
-    if (typeof requestBody.get === "function") {
-      const val = requestBody.get("model");
+    const req = requestBody as Record<string, unknown>;
+    if (typeof req.get === "function") {
+      const val = (req.get as (key: string) => unknown)("model");
       if (typeof val === "string") return val;
     }
-    if (typeof requestBody === "object") {
-      if (requestBody._isSerializedFormData && Array.isArray(requestBody.entries)) {
-        const entry = requestBody.entries.find((e: any) => e.name === "model");
+    if (typeof req === "object") {
+      if (req._isSerializedFormData && Array.isArray(req.entries)) {
+        const entry = req.entries.find((e: unknown) => {
+          const item = e as Record<string, unknown>;
+          return item && item.name === "model";
+        }) as Record<string, unknown> | undefined;
         if (entry && typeof entry.value === "string") return entry.value;
       }
-      if (typeof requestBody.model === "string") return requestBody.model;
+      if (typeof req.model === "string") return req.model;
     }
   }
   return null;
+}
+
+/** Input fields for summarizing diagnostics. */
+export interface SummarizeDiagnosticsInput {
+  endpoint: string;
+  method: string;
+  status?: number | string | null;
+  ok?: boolean;
+  headers?: Record<string, string>;
+  error?: string;
+  startedAt?: string;
+  endedAt?: string;
+  model?: string | null;
 }
 
 /**
@@ -130,7 +168,7 @@ export function summarizeDiagnostics({
   startedAt,
   endedAt,
   model,
-}: any) {
+}: SummarizeDiagnosticsInput): Partial<DiagnosticsEntry> {
   return {
     endpoint,
     method,
@@ -176,22 +214,26 @@ export function normalizeError(status: number | null, rawMessage: string) {
  * @param body The parsed response body from the main process.
  * @returns A human-readable error string.
  */
-function readDesktopErrorBody(body: any): string {
-  // Standard Venice error: { error: string } or { error: { message: string } }
-  const top = body?.error?.message || body?.error || body?.message;
+function readDesktopErrorBody(body: unknown): string {
+  if (!body || typeof body !== "object") return String(body || "Unknown Venice API error");
+  const record = body as Record<string, unknown>;
+  const errorObj = record.error as Record<string, unknown> | undefined;
+  const top = errorObj?.message || record.error || record.message;
   if (top) return typeof top === "object" ? JSON.stringify(top) : String(top);
-  // Venice DetailedError (Zod): { details: { _errors?: string[], field?: { _errors: string[] } } }
-  const details = body?.details;
+  
+  const details = record.details;
   if (details && typeof details === "object") {
-    if (Array.isArray(details._errors) && details._errors.length) return String(details._errors[0]);
-    for (const key of Object.keys(details)) {
+    const detailsRec = details as Record<string, unknown>;
+    if (Array.isArray(detailsRec._errors) && detailsRec._errors.length) return String(detailsRec._errors[0]);
+    for (const key of Object.keys(detailsRec)) {
       if (key === "_errors") continue;
-      const errs = details[key]?._errors;
+      const val = detailsRec[key] as Record<string, unknown> | undefined;
+      const errs = val?._errors;
       if (Array.isArray(errs) && errs.length) return `${key}: ${String(errs[0])}`;
     }
     return "Request validation failed";
   }
-  return String(body?.detail || body?.text || "Unknown Venice API error");
+  return String(record.detail || record.text || "Unknown Venice API error");
 }
 
 /**
@@ -201,35 +243,26 @@ function readDesktopErrorBody(body: any): string {
  * @param statusText The HTTP status text.
  * @returns A human-readable error string.
  */
-export function readWebErrorBody(parsed: any, text: string, statusText: string): string {
-  const top = parsed?.error?.message || parsed?.error || parsed?.message;
+export function readWebErrorBody(parsed: unknown, text: string, statusText: string): string {
+  if (!parsed || typeof parsed !== "object") return String(parsed || text || statusText || "Unknown Venice API error");
+  const record = parsed as Record<string, unknown>;
+  const errorObj = record.error as Record<string, unknown> | undefined;
+  const top = errorObj?.message || record.error || record.message;
   if (top) return typeof top === "object" ? JSON.stringify(top) : String(top);
-  const details = parsed?.details;
+  
+  const details = record.details;
   if (details && typeof details === "object") {
-    if (Array.isArray(details._errors) && details._errors.length) return String(details._errors[0]);
-    for (const key of Object.keys(details)) {
+    const detailsRec = details as Record<string, unknown>;
+    if (Array.isArray(detailsRec._errors) && detailsRec._errors.length) return String(detailsRec._errors[0]);
+    for (const key of Object.keys(detailsRec)) {
       if (key === "_errors") continue;
-      const errs = details[key]?._errors;
+      const val = detailsRec[key] as Record<string, unknown> | undefined;
+      const errs = val?._errors;
       if (Array.isArray(errs) && errs.length) return `${key}: ${String(errs[0])}`;
     }
     return "Request validation failed";
   }
-  return String(parsed?.detail || text || statusText || "Unknown Venice API error");
-}
-
-/** Represents a single entry inside a serialized FormData payload. */
-interface SerializedFormDataEntry {
-  name: string;
-  value: string;
-  filename?: string;
-  type?: string;
-  _isFile?: boolean;
-}
-
-/** Represents a FormData object that has been serialized for IPC transport. */
-interface SerializedFormData {
-  _isSerializedFormData: true;
-  entries: SerializedFormDataEntry[];
+  return String(record.detail || text || statusText || "Unknown Venice API error");
 }
 
 /**
@@ -267,6 +300,12 @@ async function serializeFormData(formData: FormData): Promise<SerializedFormData
   return { _isSerializedFormData: true, entries };
 }
 
+/** Custom error structure for Venice client requests. */
+interface VeniceApiError extends Error {
+  status?: number | null;
+  diagnostics?: Partial<DiagnosticsEntry>;
+}
+
 /**
  * Performs a Venice API request through the desktop IPC bridge with retries.
  * @param endpoint The Venice API endpoint.
@@ -277,26 +316,26 @@ async function veniceFetchDesktop(
   endpoint: string,
   {
     method = "GET",
-    body = undefined as any,
+    body = undefined as unknown,
     signal = undefined as AbortSignal | undefined,
-    dispatch = undefined as any,
-    headers = {},
+    dispatch = undefined as AppDispatch | undefined,
+    headers = {} as Record<string, string>,
     isFormData = false,
     retry = true,
   } = {}
-): Promise<{ data: any; response: any; headers: any; diagnostics: any }> {
+): Promise<{ data: unknown; response: VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }> {
   // Serialize FormData before crossing the IPC boundary.
   let serializedBody = body;
   if (isFormData && body instanceof FormData) {
     serializedBody = await serializeFormData(body);
   }
   const maxAttempts = retry ? 3 : 1;
-  let lastError: any = null;
+  let lastError: VeniceApiError | null = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const startedAt = nowIso();
-    let diagHeaders: any = {};
-    let response: any = null;
+    const diagHeaders: Record<string, string> = {};
+    let response: VeniceForgeResponse | null = null;
     try {
       if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
       response = await desktopVenice.request(
@@ -334,20 +373,21 @@ async function veniceFetchDesktop(
           );
           continue;
         }
-        const error: any = new Error(errorMsg);
+        const error: VeniceApiError = new Error(errorMsg);
         error.status = response.status;
         error.diagnostics = diag; // marks as already dispatched
         throw error;
       }
 
       return { data: response.body, response, headers: diagHeaders, diagnostics: diag };
-    } catch (err: any) {
-      if (err?.name === "AbortError") throw err;
-      const normalized = err.message || "Desktop Venice transport failed.";
-      lastError = new Error(normalized);
-      lastError.status = err.status || response?.status || null;
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") throw err;
+      const errorObj = err as VeniceApiError;
+      const normalized = errorObj.message || "Desktop Venice transport failed.";
+      lastError = new Error(normalized) as VeniceApiError;
+      lastError.status = errorObj.status ?? response?.status ?? null;
       // Skip re-dispatch for HTTP errors already dispatched in the try block.
-      if (!err.diagnostics) {
+      if (!errorObj.diagnostics) {
         dispatch?.({
           type: "SET_DIAGNOSTICS",
           diagnostics: summarizeDiagnostics({
@@ -365,7 +405,12 @@ async function veniceFetchDesktop(
       }
 
       const isNetworkFailure = lastError.status == null || lastError.status === 0;
-      if (([429, 500, 503].includes(lastError.status) || isNetworkFailure) && attempt < maxAttempts - 1) {
+      if (
+        lastError.status !== undefined &&
+        lastError.status !== null &&
+        ([429, 500, 503].includes(lastError.status) || isNetworkFailure) &&
+        attempt < maxAttempts - 1
+      ) {
         await sleep(calculateBackoff(attempt + 1, 1200, 9000), signal);
         continue;
       }
@@ -382,15 +427,16 @@ async function veniceFetchDesktop(
  * @param attempt The current retry attempt number.
  * @returns The wait time in milliseconds.
  */
-function computeRateLimitWait(headers: any, attempt: number) {
+function computeRateLimitWait(headers: unknown, attempt: number) {
+  const record = headers as Record<string, string> | undefined;
   // Prefer standard Retry-After header (seconds)
-  const retryAfter = headers?.["retry-after"];
+  const retryAfter = record?.["retry-after"];
   if (retryAfter) {
     const n = Number(retryAfter);
     if (Number.isFinite(n) && n >= 0) return Math.min(n * 1000, 60000);
   }
 
-  const raw = headers?.["x-ratelimit-reset-requests"];
+  const raw = record?.["x-ratelimit-reset-requests"];
   const n = Number(raw);
   if (Number.isFinite(n)) {
     if (looksLikeUnixTimestamp(n))
@@ -410,14 +456,14 @@ async function _veniceFetch(
   endpoint: string,
   {
     method = "GET",
-    body = undefined as any,
+    body = undefined as unknown,
     signal = undefined as AbortSignal | undefined,
-    dispatch = undefined as any,
-    headers = {},
+    dispatch = undefined as AppDispatch | undefined,
+    headers = {} as Record<string, string>,
     isFormData = false,
     retry = true,
   } = {}
-): Promise<{ data: any; response: Response; headers: any; diagnostics: any }> {
+): Promise<{ data: unknown; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }> {
   if (isElectron()) {
     return veniceFetchDesktop(endpoint, {
       method,
@@ -427,13 +473,13 @@ async function _veniceFetch(
       headers,
       isFormData,
       retry,
-    }) as Promise<{ data: any; response: Response; headers: any; diagnostics: any }>;
+    });
   }
 
   const startedAt = nowIso();
   const url = `${PROXY_BASE_PATH}${endpoint}`;
   const maxAttempts = retry ? 3 : 1;
-  let lastError: any = null;
+  let lastError: VeniceApiError | null = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
@@ -444,8 +490,8 @@ async function _veniceFetch(
     if (!isFormData) requestHeaders["Content-Type"] = "application/json";
 
     let response: Response | null = null;
-    let diagHeaders: any = {};
-    let parsed: any = null;
+    let diagHeaders: Record<string, string> = {};
+    let parsed: unknown = null;
     try {
       const fetchSignal = signal
         ? AbortSignal.any([signal, AbortSignal.timeout(60000)])
@@ -454,7 +500,7 @@ async function _veniceFetch(
         method,
         headers: requestHeaders,
         body: isFormData
-          ? body
+          ? (body as FormData)
           : body === undefined
           ? undefined
           : JSON.stringify(body),
@@ -479,9 +525,9 @@ async function _veniceFetch(
       ) {
         const blob = await response.blob();
         parsed = {
-          dataUrl: await new Promise((resolve, reject) => {
+          dataUrl: await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result);
+            reader.onloadend = () => resolve(reader.result as string);
             reader.onerror = () => reject(new Error("Failed to read response blob"));
             reader.readAsDataURL(blob);
           }),
@@ -523,26 +569,27 @@ async function _veniceFetch(
           continue;
         }
 
-        const error: any = new Error(normalized);
+        const error: VeniceApiError = new Error(normalized);
         error.status = response.status;
         error.diagnostics = diag;
         throw error;
       }
 
       return { data: parsed, response, headers: diagHeaders, diagnostics: diag };
-    } catch (err: any) {
-      if (err?.name === "AbortError") throw err;
+    } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === "AbortError") throw err;
 
+      const errorObj = err as VeniceApiError;
       const isFetchFailure = err instanceof TypeError;
       const normalized = isFetchFailure
         ? "TypeError/fetch failure: likely CORS, network, browser sandbox, or blocked request. " +
-          (err.message || "")
-        : err.message || "Request failed";
+          (errorObj.message || "")
+        : errorObj.message || "Request failed";
 
-      lastError = new Error(normalized);
-      lastError.status = err.status || response?.status || null;
+      lastError = new Error(normalized) as VeniceApiError;
+      lastError.status = errorObj.status ?? response?.status ?? null;
 
-      if (!err.diagnostics) {
+      if (!errorObj.diagnostics) {
         dispatch?.({
           type: "SET_DIAGNOSTICS",
           diagnostics: summarizeDiagnostics({
@@ -560,6 +607,8 @@ async function _veniceFetch(
       }
 
       if (
+        lastError.status !== undefined &&
+        lastError.status !== null &&
         (isFetchFailure || [429, 500, 503].includes(lastError.status)) &&
         attempt < maxAttempts - 1
       ) {
@@ -580,23 +629,24 @@ async function _veniceFetch(
  * @param options Request options including method, body, signal, dispatch, and retry flags.
  * @returns A promise resolving to the parsed data, raw response, headers, and diagnostics.
  */
-export async function veniceFetch(
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function veniceFetch<T = any>(
   endpoint: string,
   options: {
     method?: string;
-    body?: any;
+    body?: unknown;
     signal?: AbortSignal;
-    dispatch?: any;
+    dispatch?: AppDispatch;
     headers?: Record<string, string>;
     isFormData?: boolean;
     retry?: boolean;
     dedupe?: boolean;
   } = {}
-): Promise<{ data: any; response: Response; headers: any; diagnostics: any }> {
+): Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }> {
   const { dedupe = false, method = "GET", body } = options;
   const key = dedupe ? dedupeKey(endpoint, method, body) : "";
   if (dedupe && inFlight.has(key)) {
-    return inFlight.get(key)!;
+    return inFlight.get(key) as Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }>;
   }
 
   const promise = _veniceFetch(endpoint, options);
@@ -606,7 +656,7 @@ export async function veniceFetch(
     promise.finally(() => inFlight.delete(key)).catch(() => {});
   }
 
-  return promise;
+  return promise as unknown as Promise<{ data: T; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }>;
 }
 
 /**
@@ -615,14 +665,15 @@ export async function veniceFetch(
  * @param options Streaming options including signal, dispatch, and onDelta callback.
  */
 export async function veniceStreamChat(
-  payload: any,
+  payload: unknown,
   {
     signal,
     dispatch,
     onDelta,
-  }: { signal?: AbortSignal; dispatch?: any; onDelta: (delta: string) => void }
+  }: { signal?: AbortSignal; dispatch?: AppDispatch; onDelta: (delta: string) => void }
 ) {
   const startedAt = nowIso();
+  const payloadRecord = payload as Record<string, unknown> | null | undefined;
   if (isElectron()) {
     const response = await desktopVenice.streamChat(
       {
@@ -645,7 +696,7 @@ export async function veniceStreamChat(
         error: "",
         startedAt,
         endedAt: nowIso(),
-        model: payload?.model,
+        model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
       }),
     });
     if (!response.ok) {
@@ -693,14 +744,14 @@ export async function veniceStreamChat(
       error: "",
       startedAt,
       endedAt: nowIso(),
-      model: payload?.model,
+      model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
     }),
   });
 
   if (!response.ok) {
     const text = await response.text().catch(() => "");
-    let parsed: any = null;
-    try { parsed = JSON.parse(text); } catch {}
+    let parsed: unknown = null;
+    try { parsed = JSON.parse(text); } catch { /* non-JSON error body — use raw text */ }
     throw new Error(
       normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText))
     );
@@ -745,7 +796,7 @@ export async function veniceStreamChat(
             json?.choices?.[0]?.text ||
             "";
           if (delta) onDelta(delta);
-        } catch {}
+        } catch { /* malformed SSE JSON chunk — skip */ }
       }
     }
   } finally {

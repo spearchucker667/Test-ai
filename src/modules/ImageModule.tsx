@@ -245,16 +245,18 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
   }
 
   return (
-    <section className="content-card">
-      <div className="toolbar">
-        <div>
-          <h2>Image generation</h2>
-          <div className="small muted">POST /image/generate. Images auto-save to IndexedDB gallery.</div>
+    <section className="flex flex-col h-full bg-zinc-950">
+      <div className="flex-none p-6 border-b border-white/5 bg-zinc-950/50 backdrop-blur-md">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-display font-semibold tracking-tight text-white">Image generation</h2>
+            <div className="text-sm text-zinc-400 mt-1">POST /image/generate. Images auto-save to IndexedDB gallery.</div>
+          </div>
+          <DiagPreview diagnostics={state.diagnostics} />
         </div>
-        <DiagPreview diagnostics={state.diagnostics} />
       </div>
 
-      <div className="body grid two">
+      <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         <ImageGenerationForm
           state={state}
           dispatch={dispatch}

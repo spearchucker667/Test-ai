@@ -188,20 +188,22 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
     .find((m) => m.role === "assistant" && m.content);
 
   return (
-    <section className="content-card">
-      <div className="toolbar">
-        <div>
-          <h2>Chat</h2>
-          <div className="small muted">
-            POST /chat/completions, non-streaming by default.
+    <section className="flex flex-col h-full bg-zinc-950">
+      <div className="flex-none p-6 border-b border-white/5 bg-zinc-950/50 backdrop-blur-md">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-display font-semibold tracking-tight text-white">Chat</h2>
+            <div className="text-sm text-zinc-400 mt-1">
+              POST /chat/completions, non-streaming by default.
+            </div>
           </div>
+          <DiagPreview diagnostics={state.diagnostics} />
         </div>
-        <DiagPreview diagnostics={state.diagnostics} />
       </div>
 
-      <div className="body" style={{ display: 'flex', flexDirection: 'column', gap: 16, minHeight: 0 }}>
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4 min-h-0">
         <CollapsibleSection title="Model & Settings">
-          <div className="grid two">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
             <Field label="Model">
               <ModelSelect
                 value={state.selectedChatModel}
@@ -216,85 +218,92 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
                 value={characterSlug}
                 onChange={(e) => setCharacterSlug(e.target.value)}
                 placeholder="alan-watts"
+                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-white placeholder-zinc-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all"
               />
             </Field>
           </div>
 
-          <div style={{ marginTop: 8 }}>
+          <div className="mt-4 p-1">
             <ModelRefreshButton state={state} dispatch={dispatch} />
           </div>
 
-          <div style={{ marginTop: 16 }}>
+          <div className="mt-6 p-1">
             <Field label="System prompt">
               <textarea
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
                 rows={3}
-                style={{ minHeight: 64 }}
+                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-zinc-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all min-h-[80px]"
               />
             </Field>
           </div>
 
-          <div className="grid three" style={{ marginTop: 16 }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 p-1">
             <Field label="Web search">
               <select
                 value={webSearch}
                 onChange={(e) => setWebSearch(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all appearance-none"
               >
                 <option value="off">off</option>
                 <option value="on">on</option>
                 <option value="auto">auto</option>
               </select>
             </Field>
-            <div className="field">
-              <label>Venice parameters</label>
-              <div className="chip-row">
-                <label className="switch">
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">Venice parameters</label>
+              <div className="flex flex-col gap-3 p-3 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={webScraping}
                     onChange={(e) => setWebScraping(e.target.checked)}
-                  />{" "}
-                  Web scraping
+                    className="w-4 h-4 rounded border-white/20 bg-black/50 text-brand-500 focus:ring-brand-500/50"
+                  />
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">Web scraping</span>
                 </label>
-                <label className="switch">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={webCitations}
                     onChange={(e) => setWebCitations(e.target.checked)}
-                  />{" "}
-                  Citations
+                    className="w-4 h-4 rounded border-white/20 bg-black/50 text-brand-500 focus:ring-brand-500/50"
+                  />
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">Citations</span>
                 </label>
               </div>
             </div>
-            <div className="field">
-              <label>Response mode</label>
-              <div className="chip-row">
-                <label className="switch">
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">Response mode</label>
+              <div className="flex flex-col gap-3 p-3 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={includeVeniceSystemPrompt}
                     onChange={(e) => setIncludeVeniceSystemPrompt(e.target.checked)}
-                  />{" "}
-                  Include Venice system prompt
+                    className="w-4 h-4 rounded border-white/20 bg-black/50 text-brand-500 focus:ring-brand-500/50"
+                  />
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">Include Venice system prompt</span>
                 </label>
-                <label className="switch">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={stream}
                     onChange={(e) => setStream(e.target.checked)}
-                  />{" "}
-                  Stream response
+                    className="w-4 h-4 rounded border-white/20 bg-black/50 text-brand-500 focus:ring-brand-500/50"
+                  />
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">Stream response</span>
                 </label>
               </div>
             </div>
           </div>
 
-          <div className="grid three" style={{ marginTop: 16 }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 p-1">
             <Field label="Reasoning effort">
               <select
                 value={reasoningEffort}
                 onChange={(e) => setReasoningEffort(e.target.value)}
+                className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all appearance-none"
               >
                 <option value="">(model default)</option>
                 <option value="none">none</option>
@@ -306,58 +315,73 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
                 <option value="max">max</option>
               </select>
             </Field>
-            <div className="field">
-              <label>Reasoning / thinking</label>
-              <div className="chip-row">
-                <label className="switch">
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">Reasoning / thinking</label>
+              <div className="flex flex-col gap-3 p-3 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={stripThinking}
                     onChange={(e) => setStripThinking(e.target.checked)}
-                  />{" "}
-                  Strip &lt;think&gt; blocks
+                    className="w-4 h-4 rounded border-white/20 bg-black/50 text-brand-500 focus:ring-brand-500/50"
+                  />
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">Strip &lt;think&gt; blocks</span>
                 </label>
-                <label className="switch">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={disableThinking}
                     onChange={(e) => setDisableThinking(e.target.checked)}
-                  />{" "}
-                  Disable thinking
+                    className="w-4 h-4 rounded border-white/20 bg-black/50 text-brand-500 focus:ring-brand-500/50"
+                  />
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">Disable thinking</span>
                 </label>
               </div>
             </div>
-            <div className="field">
-              <label>Grok / xAI</label>
-              <div className="chip-row">
-                <label className="switch">
+            <div>
+              <label className="block text-sm font-medium text-zinc-300 mb-2">Grok / xAI</label>
+              <div className="flex flex-col gap-3 p-3 rounded-xl border border-white/5 bg-white/5 backdrop-blur-sm">
+                <label className="flex items-center gap-3 cursor-pointer group">
                   <input
                     type="checkbox"
                     checked={enableXSearch}
                     onChange={(e) => setEnableXSearch(e.target.checked)}
-                  />{" "}
-                  xAI web + X search
+                    className="w-4 h-4 rounded border-white/20 bg-black/50 text-brand-500 focus:ring-brand-500/50"
+                  />
+                  <span className="text-sm font-medium text-zinc-300 group-hover:text-white transition-colors">xAI web + X search</span>
                 </label>
               </div>
             </div>
           </div>
         </CollapsibleSection>
 
-        <div className="message-list" aria-live="polite">
+        <div className="flex-1 overflow-y-auto space-y-4 pr-2" aria-live="polite">
           {messages.map((m, idx) => (
-            <div key={m.id || `${m.role}-${m.content?.slice(0, 8)}`} className={`message ${m.role}`}>
-              <div className="message-head">
-                <strong>{m.role}</strong>
-                {m.role === "assistant" &&
-                  idx === messages.length - 1 &&
-                  loading && <span>loading…</span>}
+            <div key={m.id || `${m.role}-${m.content?.slice(0, 8)}`} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`max-w-[85%] rounded-2xl px-5 py-4 shadow-sm backdrop-blur-md ${
+                m.role === 'user' 
+                  ? 'bg-brand-500 text-white rounded-tr-sm' 
+                  : 'bg-[#1a1728] border border-white/5 text-zinc-100 rounded-tl-sm shadow-[0_4px_24px_rgba(0,0,0,0.2)]'
+              }`}>
+                <div className={`flex items-center gap-2 mb-2 text-xs font-semibold tracking-wider uppercase ${m.role === 'user' ? 'text-brand-200' : 'text-brand-400'}`}>
+                  <span>{m.role}</span>
+                  {m.role === "assistant" && idx === messages.length - 1 && loading && (
+                    <span className="flex items-center gap-1">
+                      <span className="w-1 h-1 bg-brand-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                      <span className="w-1 h-1 bg-brand-400 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                      <span className="w-1 h-1 bg-brand-400 rounded-full animate-bounce"></span>
+                    </span>
+                  )}
+                </div>
+                <div className="prose prose-invert max-w-none text-sm leading-relaxed prose-p:my-2 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl">
+                  <Markdown
+                    text={
+                      m.content ||
+                      (loading && idx === messages.length - 1 ? "" : "")
+                    }
+                  />
+                </div>
               </div>
-              <Markdown
-                text={
-                  m.content ||
-                  (loading && idx === messages.length - 1 ? "…" : "")
-                }
-              />
             </div>
           ))}
           <div ref={endRef}></div>
@@ -365,30 +389,32 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
 
         <StatusBlock error={error} />
 
-        <Field label="User prompt">
-          <textarea
-            aria-label="User prompt"
-            value={userPrompt}
-            onChange={(e) => {
-              setUserPrompt(e.target.value);
-              if (promptTouched && e.target.value.trim()) setPromptTouched(false);
-            }}
+        <div className="pt-2">
+          <Field label="User prompt">
+            <textarea
+              aria-label="User prompt"
+              value={userPrompt}
+              onChange={(e) => {
+                setUserPrompt(e.target.value);
+                if (promptTouched && e.target.value.trim()) setPromptTouched(false);
+              }}
+              placeholder="Ask Venice something…"
+              aria-invalid={promptTouched && !userPrompt.trim()}
+              aria-describedby="chat-prompt-error"
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") send();
+              }}
+              className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-zinc-600 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all min-h-[100px] resize-y shadow-inner"
+            />
+            {promptTouched && !userPrompt.trim() && (
+              <div id="chat-prompt-error" className="mt-2 text-sm text-red-400" role="alert">
+                Please enter a prompt before sending.
+              </div>
+            )}
+          </Field>
+        </div>
 
-            placeholder="Ask Venice something…"
-            aria-invalid={promptTouched && !userPrompt.trim()}
-            aria-describedby="chat-prompt-error"
-            onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") send();
-            }}
-          />
-          {promptTouched && !userPrompt.trim() && (
-            <div id="chat-prompt-error" className="validation-error" role="alert">
-              Please enter a prompt before sending.
-            </div>
-          )}
-        </Field>
-
-        <div className="chip-row">
+        <div className="flex flex-wrap gap-3 pb-4">
           <button
             className="btn primary"
             onClick={send}

@@ -15,16 +15,21 @@ export interface ModelGroups {
   vision: ModelInfo[];
 }
 
-/** Single diagnostics entry capturing request metrics and metadata. */
 export interface DiagnosticsEntry {
   id: string;
   timestamp: number;
   type: "info" | "warn" | "error" | "success";
   endpoint: string;
-  status: number | string;
-  latencyMs: number;
-  reqSize: number;
-  resSize: number;
+  status: number | string | null;
+  latencyMs: number | null;
+  reqSize?: number;
+  resSize?: number;
   error?: string;
-  data?: any;
+  data?: unknown;
+  method?: string;
+  ok?: boolean;
+  headers?: Record<string, string>;
+  model?: string | null;
+  startedAt?: string;
+  endedAt?: string;
 }

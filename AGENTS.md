@@ -175,8 +175,8 @@ The full CI pipeline is `npm run ci` → `npm ci && npm run typecheck && npm tes
 
 - Modules use `function` declarations, not arrow functions.
 - Local module state (forms, loading, errors) uses `useState`; shared state uses the global reducer.
-- CSS classes use kebab-case (e.g., `content-card`, `chip-row`).
-- Theming is CSS-variable driven in `index.css`.
+- CSS styling relies on Tailwind v4 utility classes inline with JSX.
+- Theming incorporates a "Premium Dark Glass" aesthetic using Tailwind utilities like `bg-zinc-950`, `bg-black/40`, `border-white/10`, and `backdrop-blur-md` for glassmorphic effects.
 
 ## Testing Instructions
 

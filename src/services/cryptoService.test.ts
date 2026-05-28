@@ -1,13 +1,12 @@
 /** @fileoverview Unit tests for cryptoService encryption and decryption. */
 
 import { describe, expect, it, beforeEach } from "vitest";
-// @ts-ignore — fake-indexeddb ESM exports lack proper typings
+// @ts-expect-error — fake-indexeddb ESM exports lack proper typings
 import FDBFactory from "fake-indexeddb/lib/FDBFactory";
 import { encryptData, decryptData } from "./cryptoService";
 
 /** Resets the IndexedDB instance before each test. */
 beforeEach(() => {
-  // @ts-ignore
   global.indexedDB = new FDBFactory();
 });
 

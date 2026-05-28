@@ -90,6 +90,8 @@ This backlog reflects the current repository state. Completed items from earlier
 | DSC-010 | Minor | Done | **Dead code: `ab2str` and `str2ab` in cryptoService** — unused helper functions. | Fixed: both functions removed. |
 | DSC-011 | Minor | Done | **TextEncoder allocation overhead in `byteLength`** — `new TextEncoder().encode(value).length` allocated a full copy. | Fixed: replaced with `new Blob([value]).size`. |
 | DSC-012 | Minor | Done | **TS18046 error in Field.tsx** — `children.props` accessed unsafely on `ReactNode`. | Fixed: Used `React.isValidElement(children)` and casted to `React.ReactElement<any>`. |
+| UI-001 | P0 | Done | **Migrate all legacy CSS to Tailwind v4** — Refactored all components and modules away from monolithic `.css` files. | Fixed: Entire app now utilizes Tailwind utility classes. |
+| UI-002 | P0 | Done | **Implement Premium Dark Glass Theme** — Standardize aesthetic with backdrop-blur, high-contrast text, and glassmorphic panels. | Fixed: Fully integrated across all modules via Tailwind. |
 
 ## Verification Commands
 

@@ -76,7 +76,7 @@ When executing code modifications, security audits, or feature additions as a Ge
 | Component | Technology | Version / Configuration |
 | :--- | :--- | :--- |
 | **UI Library** | React 19 | `src/main.tsx` |
-| **Styling** | Tailwind CSS v4 | Vanilla CSS tokens in `src/index.css` |
+| **Styling** | Tailwind CSS v4 | "Premium Dark Glass" theme with CSS tokens in `src/index.css` |
 | **Build Tool (Renderer)** | Vite 6 | `vite.config.ts` |
 | **Desktop Shell** | Electron 42 | `electron/main.ts` |
 | **Packaging** | electron-builder 26 | `electron-builder.config.cjs` |

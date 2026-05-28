@@ -1,7 +1,7 @@
 /** @fileoverview Unit tests for desktopBridge web fallback behavior. */
 
 import { describe, expect, it, vi, beforeEach } from "vitest";
-// @ts-ignore - fake-indexeddb ESM exports lack proper typings
+// @ts-expect-error - fake-indexeddb ESM exports lack proper typings
 import FDBFactory from "fake-indexeddb/lib/FDBFactory";
 import {
   desktopApiKey,
@@ -18,7 +18,6 @@ import { veniceFetch } from "./veniceClient";
 
 /** Resets IndexedDB and clears mocks before each test. */
 beforeEach(() => {
-  // @ts-ignore
   global.indexedDB = new FDBFactory();
   vi.clearAllMocks();
 });
