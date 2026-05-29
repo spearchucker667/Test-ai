@@ -320,7 +320,7 @@
   - **Fix:** Implement a small ring buffer (`.1`, `.2`, `.3`) or append a timestamp.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-023] `catch (err: any)` used in 8+ files — loose error typing masks safety** — 12 occurrences
+- [x] **[BUG-023] `catch (err: any)` used in 8+ files — loose error typing masks safety** — 12 occurrences
   - **Type:** Type Safety
   - **What:** The `any` annotation on caught errors prevents the compiler from catching unsafe property accesses.
   - **Locations:**
