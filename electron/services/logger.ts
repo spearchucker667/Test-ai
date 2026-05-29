@@ -35,12 +35,21 @@ export function getLogPath(): string {
   return path.join(getLogsDir(), LOG_FILE);
 }
 
-/** Ensures the log directory exists and rotates oversized log files. */
-function ensureLogFile(): void {
+/** @internal exported for testing */
+export function ensureLogFile(): void {
   fs.mkdirSync(getLogsDir(), { recursive: true });
   const logPath = getLogPath();
   if (fs.existsSync(logPath) && fs.statSync(logPath).size > MAX_LOG_BYTES) {
-    fs.renameSync(logPath, `${logPath}.1`);
+    const b3 = `${logPath}.3`;
+    const b2 = `${logPath}.2`;
+    const b1 = `${logPath}.1`;
+    if (fs.existsSync(b2)) {
+      fs.renameSync(b2, b3);
+    }
+    if (fs.existsSync(b1)) {
+      fs.renameSync(b1, b2);
+    }
+    fs.renameSync(logPath, b1);
   }
 }
 
