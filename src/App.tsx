@@ -1,6 +1,6 @@
 // Code Owner: fayeblade (@spearchucker667)
 // Root application shell — all state, routing, and bridge initialization lives here.
-import React, { useEffect, useReducer, useState } from "react";
+import React, { useEffect, useReducer, useState, useRef } from "react";
 import { appReducer, initialState } from "./state/appReducer";
 import StorageService from "./services/storageService";
 import { refreshModels } from "./services/modelService";
@@ -154,24 +154,36 @@ export default function App() {
     }
   }, [apiKeyConfigured, firstRunRouted]);
 
+  const settingsSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!dbReady || !settingsHydrated) return;
-    StorageService.saveItem("settings", {
-      id: "app-settings",
-      value: state.settings,
-      timestamp: Date.now(),
-    }).catch((err) => {
-      console.warn("Settings save failed", err);
-      dispatch({
-        type: "ADD_TOAST",
-        toast: {
-          id: crypto.randomUUID(),
-          message: "Failed to save settings to local storage.",
-          type: "error",
-          duration: 5000,
-        },
+    if (settingsSaveTimeoutRef.current) {
+      clearTimeout(settingsSaveTimeoutRef.current);
+    }
+    settingsSaveTimeoutRef.current = setTimeout(() => {
+      StorageService.saveItem("settings", {
+        id: "app-settings",
+        value: state.settings,
+        timestamp: Date.now(),
+      }).catch((err) => {
+        console.warn("Settings save failed", err);
+        dispatch({
+          type: "ADD_TOAST",
+          toast: {
+            id: crypto.randomUUID(),
+            message: "Failed to save settings to local storage.",
+            type: "error",
+            duration: 5000,
+          },
+        });
       });
-    });
+    }, 500);
+    return () => {
+      if (settingsSaveTimeoutRef.current) {
+        clearTimeout(settingsSaveTimeoutRef.current);
+      }
+    };
   }, [dbReady, settingsHydrated, state.settings]);
 
   return (
