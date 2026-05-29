@@ -18,6 +18,11 @@ export const MAX_SERIALIZED_UPLOAD_BYTES = VENICE_MAX_SERIALIZED_UPLOAD_BYTES;
 /** In-flight request deduplication map (API-004). */
 const inFlight = new Map<string, Promise<{ data: unknown; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }>>();
 
+// Clear in-flight map on navigation to prevent promise leaks (BUG-013).
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => inFlight.clear());
+}
+
 /**
  * Generates a deduplication key from request parameters.
  * @param endpoint The API endpoint.

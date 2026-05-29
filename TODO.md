@@ -17,7 +17,7 @@
 
 ## Critical
 
-- [ ] **[BUG-001] `cryptoService` key-generation race condition can overwrite encryption key and permanently lock user data** `src/services/cryptoService.ts:11`
+- [x] **[BUG-001] `cryptoService` key-generation race condition can overwrite encryption key and permanently lock user data** `src/services/cryptoService.ts:11`
   - **Type:** Concurrency / Data Loss
   - **What:** `getOrCreateKey()` reads the key DB, then (if missing) generates a new key and writes it. Two concurrent calls create a classic TOCTOU race: both read `existing === null`, both generate different keys, and the second `put` overwrites the first. Any data encrypted with the first key becomes permanently undecryptable.
   - **Evidence:**
@@ -206,7 +206,7 @@
   - **Fix:** Add `hardenedRuntime: true` inside the `mac` block.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-013] `veniceFetch` deduplication map can leak promises on abrupt navigation** `src/services/veniceClient.ts:19`
+- [x] **[BUG-013] `veniceFetch` deduplication map can leak promises on abrupt navigation** `src/services/veniceClient.ts:19`
   - **Type:** Memory / Edge case
   - **What:** `inFlight` is a module-level `Map`. Promises are removed via `.finally(() => inFlight.delete(key))`, but if the page reloads or the renderer process crashes before `finally` fires, the Map entry is orphaned for the lifetime of the JS context.
   - **Evidence:**
