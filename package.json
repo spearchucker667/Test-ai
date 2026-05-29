@@ -41,12 +41,12 @@
     "typecheck": "tsc --noEmit && tsc --noEmit --project tsconfig.electron.json",
     "test": "vitest run --fileParallelism=false",
     "test:watch": "vitest --fileParallelism=false",
-    "dist": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs",
-    "dist:win": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win",
-    "dist:portable": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win portable",
-    "dist:mac": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac",
-    "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64",
-    "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64",
+    "dist": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --publish never",
+    "dist:win": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win --publish never",
+    "dist:portable": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --win portable --publish never",
+    "dist:mac": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --publish never",
+    "dist:mac:arm64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never",
+    "dist:mac:x64": "npm run verify:icon && npm run build && electron-builder --config electron-builder.config.cjs --mac --x64 --publish never",
     "ci": "npm ci && npm run lint:eslint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
