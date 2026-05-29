@@ -1,6 +1,7 @@
 /** @fileoverview Performs HTTPS requests to the Venice API from the Electron
  *  main process, including streaming chat and multipart form data support. */
 
+import crypto from "crypto";
 import https from "https";
 import { app } from "electron";
 import type { IncomingHttpHeaders } from "http";
@@ -60,7 +61,7 @@ export function sanitizeMultipartContentType(value: string | undefined): string 
  *  @returns The assembled body buffer and boundary string.
  */
 export function buildMultipartBody(serialized: SerializedFormData): { body: Buffer; boundary: string } {
-  const boundary = `----VeniceForgeBoundary${Math.random().toString(36).slice(2)}`;
+  const boundary = `----VeniceForgeBoundary${crypto.randomBytes(16).toString("hex")}`;
   const parts: Buffer[] = [];
 
   for (const entry of serialized.entries) {
