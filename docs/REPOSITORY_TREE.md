@@ -24,11 +24,17 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   └── icon-placeholder.md
 ├── docs/
 │   ├── ABOUT.md
+│   ├── BUILDING.md
+│   ├── FAQ.md
 │   ├── HQE_AUDIT_REPORT.md
 │   ├── LEGAL.md
+│   ├── MACOS.md
+│   ├── PLATFORM_SUPPORT.md
 │   ├── RELEASE.md
 │   ├── REPOSITORY_TREE.md
 │   ├── SECURITY.md
+│   ├── SIGNING_AND_NOTARIZATION.md
+│   ├── TROUBLESHOOTING.md
 │   ├── Venice_swagger_api.yaml
 │   └── venice_llm_info.md
 ├── electron/
@@ -121,6 +127,8 @@ The following paths are generated locally and are intentionally not part of the 
 
 - README badges and release ribbon are present.
 - `LICENSE`, `CODE_OF_CONDUCT.md`, `CONTRIBUTING.md`, `SECURITY.md`, and `SUPPORT.md` are present.
-- CI runs typecheck, tests, and build on Node 20 and 22.
+- CI runs lint, typecheck, tests, and build on Node 20 and 22.
 - Windows and macOS release workflows build targets, verify artifacts, and emit SHA-256 checksums.
 - Venice API legal/TOS notes are documented in [LEGAL.md](LEGAL.md).
+- FAQ and troubleshooting guides are present in [FAQ.md](FAQ.md) and [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+- Platform support matrix is documented in [PLATFORM_SUPPORT.md](PLATFORM_SUPPORT.md).

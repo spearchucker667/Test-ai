@@ -9,6 +9,7 @@ Use this routing guide for public support and maintenance requests.
 - Security reports: follow [SECURITY.md](SECURITY.md).
 - Release and packaging questions: check [docs/RELEASE.md](docs/RELEASE.md).
 - Architecture questions: check [docs/ABOUT.md](docs/ABOUT.md) and [docs/REPOSITORY_TREE.md](docs/REPOSITORY_TREE.md).
+- General questions: check [docs/FAQ.md](docs/FAQ.md).
 
 ## What to Include
 

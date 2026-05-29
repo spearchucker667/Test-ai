@@ -54,7 +54,8 @@ npm run dev:web
 ### Before Committing
 
 ```bash
-# Type-check everything (renderer + Electron main)
+# Lint and type-check everything (renderer + Electron main)
+npm run lint:eslint
 npm run typecheck
 
 # Run tests
@@ -68,6 +69,7 @@ npm run verify:icon
 npm run dist:mac # or dist:win, depending on your OS
 npm run checksum:release
 npm run verify:dist:mac # or verify:dist:win
+npm run verify:dist:portable # Windows only
 ```
 
 All commands and validations must pass before opening a PR. Note that Windows releases must be validated on Windows, and macOS releases on macOS.
@@ -98,10 +100,11 @@ See [docs/SECURITY.md](docs/SECURITY.md) for the full security model.
 
 ## Pull Request Checklist
 
+- [ ] `npm run lint:eslint` passes
 - [ ] `npm run typecheck` passes
 - [ ] `npm test` passes
 - [ ] `npm run build` passes
-- [ ] Platform-specific packaging checks (`npm run verify:dist:win` or `npm run verify:dist:mac`) pass
+- [ ] Platform-specific packaging checks (`npm run verify:dist:win`, `npm run verify:dist:mac`, and `npm run verify:dist:portable`) pass
 - [ ] New code includes tests where applicable
 - [ ] Documentation updated (README, AGENTS.md, etc.)
 - [ ] CHANGELOG.md updated under `[Unreleased]`

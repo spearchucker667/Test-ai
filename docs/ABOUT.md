@@ -13,6 +13,7 @@ Current public readiness status:
 - Release automation builds Windows NSIS/portable `.exe` artifacts and macOS DMG/ZIP artifacts.
 - Root support, security, contribution, code of conduct, issue template, PR template, and Dependabot metadata are present.
 - Legal/TOS notes are maintained in [LEGAL.md](LEGAL.md).
+- FAQ and troubleshooting guides are maintained in [FAQ.md](FAQ.md) and [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## Goals
 
@@ -56,6 +57,7 @@ Web mode (development only):
 | Web proxy | Express + http-proxy-middleware | Dev/web mode proxy |
 | Packaging | electron-builder | Windows NSIS/portable, macOS DMG/ZIP |
 | Automation | GitHub Actions + Dependabot | CI, Windows/macOS release, dependency updates |
+| QA | Vitest + ESLint (`--max-warnings=96`) | Unit tests, integration tests, static analysis |
 
 ### Application Tabs
 

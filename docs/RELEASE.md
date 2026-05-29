@@ -21,6 +21,7 @@ npm run build
 npm run dist:win
 npm run checksum:release
 npm run verify:dist:win
+npm run verify:dist:portable
 ```
 
 Expected artifacts:
@@ -84,6 +85,7 @@ The workflows run `npm ci`, typecheck, tests, build, packaging commands (`dist:w
 - [ ] Open logs folder works.
 - [ ] Setup installer installs and uninstalls without deleting user data.
 - [ ] Portable exe launches without installation.
+- [ ] `verify:dist:portable` passes (`Venice-Forge-<version>-x64-Portable.exe` + `.sha256`).
 - [ ] SHA-256 checksum files match the final uploaded `.exe` files.
 - [ ] Release notes state whether artifacts are signed or unsigned.
 - [ ] Legal/TOS notes in [LEGAL.md](LEGAL.md) still link to current Venice pages.

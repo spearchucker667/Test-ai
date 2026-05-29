@@ -38,11 +38,32 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ### Fixed
 - **CI:** `.github/workflows/windows-release.yml` referenced non-existent `actions/checkout@v6` and `actions/setup-node@v6`. Downgraded to `@v4` to match the latest published action versions and restore the release pipeline.
 - **Test:** `src/services/desktopBridge.test.ts` failed with `ReferenceError: indexedDB is not defined` because `vi.stubGlobal("window", {})` stripped the fake-indexeddb instance from jsdom. The test now stubs `window` with `{ indexedDB: global.indexedDB }` so the `isConfigured()` path can open the fake database.
-- **BUG-004:** `enable_web_search` was serialised as a boolean (`true`/`false`) instead of the required string enum (`"auto"` / `"on"` / `"off"`), causing HTTP 400 on every `/chat/completions` request. `buildChatPayload` now passes the string value directly (defaulting to `"off"`).
-- **BUG-005:** Venice `DetailedError` responses (Zod validation failures) were not parsed — the error body contains a `details` object with `_errors` arrays and no top-level `error` field. Both the renderer and Electron main-process clients now extract the first `_errors` message or a field-level error when present.
-- **BUG-006:** Every failed Venice request produced two entries in the diagnostics log: one with `error: ""` from the initial HTTP dispatch, and a second with the actual message from the retry/catch path. The redundant dispatch has been removed; the initial entry now carries the fully resolved error.
-- **BUG-007:** Legacy persisted settings could still carry boolean `webSearch` values (`true`/`false`), which mapped to invalid API payloads and recurring `400` schema errors. Settings ingestion now coerces legacy values to `on`/`off`/`auto`, and chat payload construction enforces the same normalization.
-- **BUG-008:** Desktop `/augment/text-parser` uploads were unstable because `veniceFetchDesktop` serialized `FormData` but still sent the raw body over IPC. The request now correctly sends the serialized multipart payload, restoring reliable file-upload request construction.
+- **BUG-003:** Settings auto-save had no debounce — rapid changes could race and persist out-of-order state. Added a 500 ms debounce to the save effect.
+- **BUG-004:** IndexedDB init failure still marked `dbReady=true`, causing later writes to a broken database. Only sets `dbReady`/`settingsHydrated` on successful init.
+- **BUG-005:** `SET_CHAT_DRAFT`, `SET_IMAGE_DRAFT`, `SET_BATCH_DRAFT` reducers crashed on `null`/`undefined` patch. Added truthy guard before `Object.assign`.
+- **BUG-006:** `dedupeKey` threw unhandled `TypeError` on circular request bodies. Wrapped `JSON.stringify` in try/catch with `"[circular]"` fallback.
+- **BUG-007:** Import loops over stores sequentially with `await` inside `for…of`. Store writes are now parallelised via `Promise.all`.
+- **BUG-008:** Rate-limit `reqCounts` Map grew unbounded under multi-IP traffic. Added a 10,000-entry cap with FIFO eviction.
+- **BUG-010:** Raw `console.error`/`console.warn` calls left in production renderer and server paths (17 occurrences). Replaced with conditional shared logger (`src/shared/logger.ts`).
+- **BUG-011:** `AbortSignal.any`/`AbortSignal.timeout` may throw in older runtimes. Added `createTimeoutSignal()` helper with manual fallback.
+- **BUG-013:** `veniceFetch` deduplication map could leak promises on abrupt navigation. Added `beforeunload` listener that clears `inFlight`.
+- **BUG-018:** `veniceFetchDesktop` asserted `method as "GET" | "POST"` instead of narrowing. Method parameter now typed as `"GET" | "POST"`.
+- **BUG-019:** `veniceFetch<T = any>` disabled TypeScript inference. Generic default changed from `any` to `unknown`.
+- **BUG-022:** Log rotation overwrote the single backup file. Implemented 3-file rotation ring (`.1`, `.2`, `.3`).
+- **BUG-023:** `catch (err: any)` used in 8+ production files — loose error typing masked safety. Replaced with `catch (err)` and runtime guards (`err instanceof Error`).
+- **BUG-028:** `sleep` ignored already-aborted signals, allowing stale timeouts to proceed. Now rejects immediately if `signal.aborted` before setting timeout.
+- **BUG-029:** `modelService` swallowed `localStorage` write failures silently. Empty catch now warns via shared logger.
+- **BUG-030:** `byteLength` used `new Blob([value]).size` — slow for large strings. Replaced with `new TextEncoder().encode(value).length`.
+- **BUG-036:** `SettingsModuleProps` used `state: any, dispatch: any`. Now typed with `AppState` and `AppDispatch`.
+- **BUG-037:** `desktopUpdates` callbacks typed as `(info: unknown)` / `(progress: unknown)`. Now use `UpdateInfo` and `ProgressInfo` from `electron-updater`.
+- **BUG-040:** `normalizeWebSearchSetting` did not warn on invalid input. Now logs a warning when coercion happens.
+- **BUG-042:** `isAllowedAppNavigation` used `path.normalize` without symlink resolution. Added `fs.realpathSync` with try/catch for both target and root paths.
+- **BUG-043:** `verify-dist-mac.cjs` artifact name pattern did not match `electron-builder` default zip naming. Added `zip.artifactName` to `electron-builder.config.cjs` to align naming.
+- **BUG-004 (payload):** `enable_web_search` was serialised as a boolean (`true`/`false`) instead of the required string enum (`"auto"` / `"on"` / `"off"`), causing HTTP 400 on every `/chat/completions` request. `buildChatPayload` now passes the string value directly (defaulting to `"off"`).
+- **BUG-005 (payload):** Venice `DetailedError` responses (Zod validation failures) were not parsed — the error body contains a `details` object with `_errors` arrays and no top-level `error` field. Both the renderer and Electron main-process clients now extract the first `_errors` message or a field-level error when present.
+- **BUG-006 (payload):** Every failed Venice request produced two entries in the diagnostics log: one with `error: ""` from the initial HTTP dispatch, and a second with the actual message from the retry/catch path. The redundant dispatch has been removed; the initial entry now carries the fully resolved error.
+- **BUG-007 (payload):** Legacy persisted settings could still carry boolean `webSearch` values (`true`/`false`), which mapped to invalid API payloads and recurring `400` schema errors. Settings ingestion now coerces legacy values to `on`/`off`/`auto`, and chat payload construction enforces the same normalization.
+- **BUG-008 (payload):** Desktop `/augment/text-parser` uploads were unstable because `veniceFetchDesktop` serialized `FormData` but still sent the raw body over IPC. The request now correctly sends the serialized multipart payload, restoring reliable file-upload request construction.
 
 ### Security
 - Explicitly disabled plaintext API-key fallback on macOS.

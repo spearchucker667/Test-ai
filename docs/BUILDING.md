@@ -15,6 +15,7 @@ npm run dev:web        # Start the web proxy development mode
 
 Before submitting a PR, always run the cross-platform baseline validations:
 ```bash
+npm run lint:eslint
 npm run typecheck
 npm test
 npm run build
@@ -28,6 +29,7 @@ Run the following on Windows PowerShell:
 npm run dist:win
 npm run checksum:release
 npm run verify:dist:win
+npm run verify:dist:portable
 ```
 
 This generates NSIS setup executables and portable binaries in the `release/` directory.

@@ -61,6 +61,7 @@ Useful scripts:
 
 | Command | Description |
 |---------|-------------|
+| `npm run lint:eslint` | ESLint with `--max-warnings=96` budget |
 | `npm run typecheck` | TypeScript check for renderer and Electron |
 | `npm test` | Vitest unit and integration tests |
 | `npm run build` | Build `dist/` (web) and `dist-electron/` (main process) |
@@ -74,6 +75,7 @@ npm run verify:icon
 npm run dist:win
 npm run checksum:release
 npm run verify:dist:win
+npm run verify:dist:portable
 ```
 
 Artifacts are written to `release/`:
@@ -106,6 +108,13 @@ Official public releases must be signed using Apple Developer ID credentials and
 **Desktop mode:** open **Config**, paste the Venice API key, click **Save key**, then **Test connection**. Venice Forge refuses to store the key if Electron `safeStorage` encryption (DPAPI on Windows, Keychain on macOS) is unavailable.
 
 **Web mode:** copy `.env.example` to `.env` and set `VENICE_API_KEY`.
+
+### Optional Environment Variables
+
+| Variable | Purpose |
+|----------|---------|
+| `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE` | Allow plaintext fallback when OS secure storage is unavailable (Linux/non-GNOME only). **Warning:** reduces security. |
+| `VENICE_FORGE_DEBUG_DEVTOOLS` | Allow DevTools in packaged production builds. Only enable for debugging. |
 
 ```
 VENICE_API_KEY="your-venice-inference-key"
