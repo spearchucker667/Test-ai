@@ -2,6 +2,7 @@
 
 import { FALLBACK_MODELS, DEFAULT_SYSTEM_PROMPT } from "../constants/venice";
 import { produce } from "immer";
+import { warn } from "../shared/logger";
 import type { AppAction } from "../types/app";
 
 /**
@@ -100,6 +101,7 @@ function normalizeWebSearchSetting(value: unknown): "off" | "on" | "auto" {
   if (value === true) return "on";
   if (value === false) return "off";
   if (value === "off" || value === "on" || value === "auto") return value;
+  warn("normalizeWebSearchSetting: invalid value, defaulting to off", value);
   return "off";
 }
 
