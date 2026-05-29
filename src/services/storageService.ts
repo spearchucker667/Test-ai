@@ -1,6 +1,7 @@
 /** @fileoverview IndexedDB storage service with transparent at-rest encryption for sensitive stores. */
 
 import { DB_NAME, DB_VERSION, STORE_NAMES } from "../constants/venice";
+import { warn } from "../shared/logger";
 import { encryptData, decryptData } from "./cryptoService";
 
 type StoreName = (typeof STORE_NAMES)[number];
@@ -97,7 +98,7 @@ const StorageService = {
           // could not be read (e.g. after key-store loss, data corruption, or browser/profile reset).
           decryptFailures = decrypted.filter((v) => v === null).length;
           if (decryptFailures > 0) {
-            console.warn(
+            warn(
               `[storageService] ${decryptFailures} record(s) in "${store}" could not be decrypted and were skipped. ` +
               "This may indicate key-store loss, data corruption, or a browser/profile reset. The records are still persisted in IndexedDB."
             );

@@ -15,6 +15,7 @@ import {
 } from "./src/shared/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH } from "./src/shared/apiConfig";
 import { AppConfig } from "./src/shared/configSchema";
+import { warn, error } from "./src/shared/logger";
 
 dotenv.config();
 
@@ -219,7 +220,7 @@ export function createServerApp() {
           if (proxyRes.statusCode >= 500) {
             circuitFailures++;
             if (circuitFailures >= CIRCUIT_MAX_FAILURES) {
-              console.error(`[Circuit Breaker] Tripped! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
+              error(`[Circuit Breaker] Tripped! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
               circuitOpenUntil = Date.now() + CIRCUIT_RESET_TIMEOUT_MS;
             }
           } else if (proxyRes.statusCode >= 200 && proxyRes.statusCode < 300) {
@@ -227,10 +228,10 @@ export function createServerApp() {
           }
         },
         error: (err: any, req: any, res: any) => {
-          console.error("Proxy error:", err.message);
+          error("Proxy error:", err.message);
           circuitFailures++;
           if (circuitFailures >= CIRCUIT_MAX_FAILURES) {
-             console.error(`[Circuit Breaker] Tripped (Network Error)! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
+             error(`[Circuit Breaker] Tripped (Network Error)! Opening for ${CIRCUIT_RESET_TIMEOUT_MS}ms`);
              circuitOpenUntil = Date.now() + CIRCUIT_RESET_TIMEOUT_MS;
           }
           if (!res.headersSent) {
@@ -267,7 +268,7 @@ export async function startServer() {
   if (AppConfig.NODE_ENV !== "test") {
     const host = process.env.HOST || "127.0.0.1";
     app.listen(Number(PORT), host, () => {
-      console.warn(`Server running on http://${host}:${PORT}`);
+      warn(`Server running on http://${host}:${PORT}`);
     });
   }
 }

@@ -18,6 +18,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Chip } from "./components/Chip";
 import { TabButton } from "./components/TabButton";
 import { initDesktopBridge, isElectron, desktopApiKey } from "./services/desktopBridge";
+import { warn } from "./shared/logger";
 import { GalleryImage } from "./types/storage";
 
 type ChatHistoryRecord = { id: string; timestamp: number };
@@ -57,7 +58,7 @@ export default function App() {
           if (mounted) setApiKeyConfigured(configured);
         }
       } catch (err) {
-        console.warn("Desktop bridge init failed", err);
+        warn("Desktop bridge init failed", err);
         if (!mounted) return;
         if (isElectron()) setApiKeyConfigured(false);
         dispatch({
@@ -124,7 +125,7 @@ export default function App() {
           setSettingsHydrated(true);
         }
       } catch (err) {
-        console.warn("IndexedDB init failed", err);
+        warn("IndexedDB init failed", err);
         dispatch({
           type: "ADD_TOAST",
           toast: {
@@ -167,7 +168,7 @@ export default function App() {
         value: state.settings,
         timestamp: Date.now(),
       }).catch((err) => {
-        console.warn("Settings save failed", err);
+        warn("Settings save failed", err);
         dispatch({
           type: "ADD_TOAST",
           toast: {

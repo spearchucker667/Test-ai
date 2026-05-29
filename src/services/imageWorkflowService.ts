@@ -8,6 +8,7 @@ import { buildImagePayload, ImageDraftLike } from "../utils/payloadBuilders";
 import { extractImages, galleryFilename } from "../utils/image";
 import { downloadImage } from "../utils/download";
 import { isValidImageResponse } from "../utils/veniceValidation";
+import { error } from "../shared/logger";
 
 /**
  * Refreshes the gallery state by reloading all image records from IndexedDB.
@@ -123,7 +124,7 @@ export const upscaleGalleryImage = async (
     if (onComplete) onComplete();
     return saved;
   } catch (err: any) {
-    console.error("Upscale failed", err);
+    error("Upscale failed", err);
     if (onError) onError(err);
     throw err;
   }

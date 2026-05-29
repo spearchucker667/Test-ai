@@ -2,9 +2,11 @@
  * @fileoverview Runtime validators for Venice API response shapes.
  *
  * These guards are intentionally non-throwing: they return a normalised result
- * (or null/empty) and emit a console warning so callers can decide whether to
+ * (or null/empty) and emit a warning so callers can decide whether to
  * surface an error to the user or fall back gracefully.
  */
+
+import { warn } from "../shared/logger";
 
 /** Represents a successful /models response. */
 export interface ModelListResponse {
@@ -34,14 +36,14 @@ export interface ChatCompletionsResponse {
  */
 export function isValidModelListResponse(payload: unknown): payload is ModelListResponse {
   if (!payload || typeof payload !== "object") {
-    console.warn("[veniceValidation] /models response is not an object", payload);
+    warn("[veniceValidation] /models response is not an object", payload);
     return false;
   }
   const p = payload as Record<string, unknown>;
   if (!Array.isArray(p.data)) {
     // Some Venice API variants return a bare array; tolerate that too.
     if (Array.isArray(payload)) return true;
-    console.warn("[veniceValidation] /models response missing .data array", payload);
+    warn("[veniceValidation] /models response missing .data array", payload);
     return false;
   }
   return true;
@@ -55,7 +57,7 @@ export function isValidModelListResponse(payload: unknown): payload is ModelList
  */
 export function isValidImageResponse(payload: unknown): boolean {
   if (!payload || typeof payload !== "object") {
-    console.warn("[veniceValidation] Image response is not an object", payload);
+    warn("[veniceValidation] Image response is not an object", payload);
     return false;
   }
   const p = payload as Record<string, unknown>;
@@ -69,7 +71,7 @@ export function isValidImageResponse(payload: unknown): boolean {
     typeof p.dataUrl === "string" ||     // web: binary PNG returned as data URL
     typeof p.dataBase64 === "string";    // Electron: binary PNG serialized to base64
   if (!hasImages) {
-    console.warn("[veniceValidation] Image response contains no recognisable image data", payload);
+    warn("[veniceValidation] Image response contains no recognisable image data", payload);
   }
   return hasImages;
 }
@@ -82,12 +84,12 @@ export function isValidImageResponse(payload: unknown): boolean {
  */
 export function isValidChatResponse(payload: unknown): payload is ChatCompletionsResponse {
   if (!payload || typeof payload !== "object") {
-    console.warn("[veniceValidation] Chat response is not an object", payload);
+    warn("[veniceValidation] Chat response is not an object", payload);
     return false;
   }
   const p = payload as Record<string, unknown>;
   if (!Array.isArray(p.choices) || p.choices.length === 0) {
-    console.warn("[veniceValidation] Chat response missing .choices array", payload);
+    warn("[veniceValidation] Chat response missing .choices array", payload);
     return false;
   }
   return true;
@@ -101,7 +103,7 @@ export function isValidChatResponse(payload: unknown): payload is ChatCompletion
  */
 export function isValidSearchResponse(payload: unknown): boolean {
   if (!payload || typeof payload !== "object") {
-    console.warn("[veniceValidation] Search response is not an object", payload);
+    warn("[veniceValidation] Search response is not an object", payload);
     return false;
   }
   const p = payload as Record<string, unknown>;
@@ -111,7 +113,7 @@ export function isValidSearchResponse(payload: unknown): boolean {
     Array.isArray(p.items) ||
     Array.isArray(payload);
   if (!hasResults) {
-    console.warn("[veniceValidation] Search response contains no recognisable results field", payload);
+    warn("[veniceValidation] Search response contains no recognisable results field", payload);
   }
   return hasResults;
 }
