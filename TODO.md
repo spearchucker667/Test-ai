@@ -483,7 +483,7 @@
   - **Fix:** Import `AppState` and `AppDispatch` types.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-037] `desktopUpdates` callbacks typed as `(info: unknown)` / `(progress: unknown)`** `src/services/desktopBridge.ts:244`
+- [x] **[BUG-037] `desktopUpdates` callbacks typed as `(info: unknown)` / `(progress: unknown)`** `src/services/desktopBridge.ts:244`
   - **Type:** Type Safety
   - **What:** Several update callbacks accept `unknown` instead of structured types, forcing consumers to cast.
   - **Fix:** Define narrow IPC types for update info / progress objects.
