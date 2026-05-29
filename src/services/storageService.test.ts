@@ -88,8 +88,9 @@ describe("storageService", () => {
     });
 
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const items = await StorageService.getItems("chats");
-    expect(items).toHaveLength(0); // corrupt record was silently dropped
+    const result = await StorageService.getItemsWithMeta("chats");
+    expect(result.items).toHaveLength(0); // corrupt record was silently dropped
+    expect(result.decryptFailures).toBe(1);
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining('1 record(s) in "chats" could not be decrypted')
     );

@@ -6,7 +6,7 @@ import { app } from "electron";
 import type { IncomingHttpHeaders } from "http";
 import { getApiKey } from "./secureStore";
 import { logError, setLastApiError } from "./logger";
-import { validateVeniceIpcRequest, type VeniceIpcRequest } from "../ipc/validation";
+import { validateVeniceIpcRequest } from "../ipc/validation";
 import { VENICE_API_HOST, VENICE_API_BASE_PATH, VENICE_API_TIMEOUT_MS } from "../../src/shared/apiConfig";
 
 /** Hostname for the Venice API. */
@@ -14,6 +14,9 @@ const VENICE_HOST = VENICE_API_HOST;
 
 /** Base path prefix for Venice API endpoints. */
 const VENICE_BASE_PATH = VENICE_API_BASE_PATH;
+
+/** Maximum non-streaming Venice response body size we will buffer in memory. */
+const MAX_VENICE_RESPONSE_BYTES = 25 * 1024 * 1024;
 
 /** Tracks active requests so they can be aborted by signal ID. */
 const activeRequests = new Map<string, { destroy: () => void }>();
@@ -233,12 +236,19 @@ export async function performVeniceRequest(
       },
       (res) => {
         const chunks: Buffer[] = [];
+        let totalBytes = 0;
         const responseHeaders = sanitizeHeaders(res.headers);
         const contentType = String(res.headers["content-type"] || "");
         let sseBuffer = "";
         let streamText = "";
 
         res.on("data", (chunk: Buffer) => {
+          totalBytes += chunk.length;
+          if (totalBytes > MAX_VENICE_RESPONSE_BYTES) {
+            req.destroy(new Error("Response too large"));
+            return;
+          }
+
           if (options.onDelta && contentType.includes("event-stream") && res.statusCode && res.statusCode < 400) {
             sseBuffer += chunk.toString("utf-8");
             const parsed = parseSseLines(sseBuffer, options.onDelta);
@@ -282,7 +292,12 @@ export async function performVeniceRequest(
     }
 
     req.on("error", (err) => {
-      const message = err.message === "Request aborted" ? "Request aborted" : "Failed to reach Venice API.";
+      const message =
+        err.message === "Request aborted"
+          ? "Request aborted"
+          : err.message === "Response too large"
+          ? "Venice response exceeded the local safety limit."
+          : "Failed to reach Venice API.";
       if (message !== "Request aborted") {
         setLastApiError(message);
         logError("Venice API request failed", err);
@@ -307,19 +322,30 @@ export async function performVeniceRequest(
  *  @returns The most specific error message available.
  */
 export function readResponseError(response: VeniceIpcResponse): string {
-  const body = response.body as any;
-  const top = body?.error?.message || body?.error || body?.message;
+  const body = response.body && typeof response.body === "object"
+    ? (response.body as Record<string, unknown>)
+    : {};
+  const error = body.error;
+  const top =
+    error && typeof error === "object" && "message" in error
+      ? (error as { message?: unknown }).message
+      : error || body.message;
   if (top) return typeof top === "object" ? JSON.stringify(top) : String(top);
   // Venice DetailedError (Zod): { details: { _errors?: string[], field?: { _errors: string[] } } }
-  const details = body?.details;
+  const details = body.details;
   if (details && typeof details === "object") {
-    if (Array.isArray(details._errors) && details._errors.length) return String(details._errors[0]);
-    for (const key of Object.keys(details)) {
+    const detailRecord = details as Record<string, unknown>;
+    if (Array.isArray(detailRecord._errors) && detailRecord._errors.length) return String(detailRecord._errors[0]);
+    for (const key of Object.keys(detailRecord)) {
       if (key === "_errors") continue;
-      const errs = details[key]?._errors;
+      const field = detailRecord[key];
+      const errs =
+        field && typeof field === "object"
+          ? (field as { _errors?: unknown })._errors
+          : undefined;
       if (Array.isArray(errs) && errs.length) return `${key}: ${String(errs[0])}`;
     }
     return "Request validation failed";
   }
-  return String(body?.detail || response.statusText || `HTTP ${response.status}`);
+  return String(body.detail || response.statusText || `HTTP ${response.status}`);
 }

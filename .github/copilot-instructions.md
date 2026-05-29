@@ -25,13 +25,13 @@ npm run build           # Full build: web (dist/) + Electron main (dist-electron
 npm run build:web       # Renderer build only
 npm run build:server    # Express server bundle only
 npm run build:electron  # Electron main/preload build only
-npm run ci              # CI parity: npm ci + typecheck + test + build
+npm run ci              # CI parity: npm ci + lint:eslint + typecheck + test + build
 npm run clean           # Remove dist/, dist-electron/, release/
 npm run dist:win        # Build Windows NSIS + portable installers
 npm run dist:mac        # Build macOS DMG + ZIP archives
 ```
 
-Before opening a PR, follow `CONTRIBUTING.md`: run `npm run typecheck`, `npm test`, and `npm run build`.
+Before opening a PR, follow `CONTRIBUTING.md`: run `npm run lint:eslint`, `npm run typecheck`, `npm test`, and `npm run build`.
 
 ---
 
@@ -42,7 +42,7 @@ Before opening a PR, follow `CONTRIBUTING.md`: run `npm run typecheck`, `npm tes
 The renderer (`src/`) runs identically in both modes. Transport is selected at runtime by `isElectron()` in `src/services/desktopBridge.ts`:
 
 - **Electron mode**: renderer calls `window.veniceForge.*` (the contextBridge API exposed by `electron/preload.ts`), which invokes IPC channels handled in `electron/ipc/handlers.ts`. The main process holds the API key in `safeStorage` and makes HTTPS calls directly to `api.venice.ai`.
-- **Web mode**: renderer calls `fetch('/api/venice/...')`, proxied by the Express server in `server.ts` to `api.venice.ai`. The server injects `Authorization` from `VENICE_API_KEY` in `.env`. In web mode the Settings UI can also save a key to IndexedDB (used only for the "key configured" UI indicator — not forwarded to the proxy).
+- **Web mode**: renderer calls `fetch('/api/venice/...')`, proxied by the Express server in `server.ts` to `api.venice.ai`. The server injects `Authorization` from `VENICE_API_KEY` in `.env`; browser Settings cannot save or forward an API key.
 
 All Venice API requests go through `src/services/veniceClient.ts` — `veniceFetch()` for non-streaming and `veniceStreamChat()` for chat streams. Both paths include up to 3 retries with exponential back-off for 429/500/503 responses.
 

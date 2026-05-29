@@ -2,6 +2,7 @@
 /**
  * @fileoverview Central validation and typing for environment configuration.
  */
+import { VENICE_MAX_BODY_BYTES } from "./limits";
 
 export interface EnvConfig {
   VENICE_API_KEY?: string;
@@ -42,7 +43,10 @@ export const AppConfig: EnvConfig = {
   get PORT() { return parsePositiveInt(env("PORT", "3000"), 3000, 1, 65535); },
   get RATE_LIMIT_WINDOW_MS() { return parsePositiveInt(env("RATE_LIMIT_WINDOW_MS", "60000"), 60000, 1000, 3600000); },
   get RATE_LIMIT_MAX_REQUESTS() { return parsePositiveInt(env("RATE_LIMIT_MAX_REQUESTS", "60"), 60, 1, 10000); },
-  get MAX_PROXY_BODY_BYTES() { return parsePositiveInt(env("MAX_PROXY_BODY_BYTES", "26214400"), 26214400, 1024, 26214400); },
+  get MAX_PROXY_BODY_BYTES() {
+    const fallback = VENICE_MAX_BODY_BYTES;
+    return parsePositiveInt(env("MAX_PROXY_BODY_BYTES", String(fallback)), fallback, 1024, fallback);
+  },
   get NODE_ENV() { return env("NODE_ENV", "development"); },
   get TRUST_PROXY() { 
     const trustProxyRaw = env("TRUST_PROXY", "");

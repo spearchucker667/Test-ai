@@ -4,6 +4,7 @@ import StorageService from "./storageService";
 import { AppDispatch } from "../types/app";
 import { GalleryImage } from "../types/storage";
 import { veniceFetch } from "./veniceClient";
+import { buildImagePayload, ImageDraftLike } from "../utils/payloadBuilders";
 import { extractImages, galleryFilename } from "../utils/image";
 import { downloadImage } from "../utils/download";
 import { isValidImageResponse } from "../utils/veniceValidation";
@@ -15,6 +16,39 @@ import { isValidImageResponse } from "../utils/veniceValidation";
 export const refreshGallery = async (dispatch: AppDispatch) => {
   const items = await StorageService.getItems("images");
   dispatch({ type: "SET_GALLERY", items });
+};
+
+interface GenerateImageOptions {
+  signal?: AbortSignal;
+  dispatch?: AppDispatch;
+  onWatermarkRetry?: () => void;
+}
+
+/**
+ * Calls /image/generate and retries once without hide_watermark when rejected.
+ */
+export const generateImageWithWatermarkFallback = async (
+  model: string,
+  draft: ImageDraftLike,
+  options: GenerateImageOptions = {},
+  promptOverride?: string
+) => {
+  const { signal, dispatch, onWatermarkRetry } = options;
+  const payload = buildImagePayload(model, draft, promptOverride);
+  try {
+    return await veniceFetch("/image/generate", { method: "POST", body: payload, signal, dispatch });
+  } catch (err: any) {
+    const watermarkRejected =
+      err?.status === 400 &&
+      String(err?.message || "").toLowerCase().includes("watermark") &&
+      !!payload.hide_watermark;
+    if (!watermarkRejected) throw err;
+
+    const retryPayload = { ...payload };
+    delete retryPayload.hide_watermark;
+    onWatermarkRetry?.();
+    return await veniceFetch("/image/generate", { method: "POST", body: retryPayload, signal, dispatch });
+  }
 };
 
 /**
@@ -133,8 +167,12 @@ export const downloadAllGallery = async (
     }
     const item = items[i];
     try {
-      await downloadImage(item.image, galleryFilename(item));
-      downloaded++;
+      const result = await downloadImage(item.image, galleryFilename(item));
+      if (result.confirmed) {
+        downloaded++;
+      } else {
+        failed++;
+      }
     } catch {
       failed++;
     }

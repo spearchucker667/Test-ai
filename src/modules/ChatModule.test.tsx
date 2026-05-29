@@ -123,6 +123,51 @@ describe("ChatModule", () => {
     expect(veniceFetch).not.toHaveBeenCalled();
   });
 
+  // BUG-002 regression guard: settings hydrated after mount must update Chat controls.
+  it("syncs settings-backed controls when parent settings change", async () => {
+    const initialSettings = {
+      ...initialState.settings,
+      defaultSystemPrompt: "Initial prompt",
+      webSearch: "off",
+      webScraping: false,
+      webCitations: false,
+      includeVeniceSystemPrompt: true,
+    };
+    const hydratedSettings = {
+      ...initialSettings,
+      defaultSystemPrompt: "Hydrated prompt",
+      webSearch: "auto",
+      webScraping: true,
+      webCitations: true,
+      includeVeniceSystemPrompt: false,
+    };
+
+    const { rerender } = render(
+      <ChatModule
+        state={{ ...initialState, settings: initialSettings }}
+        dispatch={mockDispatch}
+      />
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /model.*settings/i }));
+    expect(screen.getByRole("textbox", { name: /^system prompt$/i })).toHaveValue("Initial prompt");
+
+    rerender(
+      <ChatModule
+        state={{ ...initialState, settings: hydratedSettings }}
+        dispatch={mockDispatch}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("textbox", { name: /^system prompt$/i })).toHaveValue("Hydrated prompt");
+    });
+    expect(screen.getByLabelText(/web search/i)).toHaveValue("auto");
+    expect(screen.getByRole("checkbox", { name: /web scraping/i })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /citations/i })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: /include venice system prompt/i })).not.toBeChecked();
+  });
+
   it("shows an error message when veniceFetch rejects", async () => {
     vi.mocked(veniceFetch).mockRejectedValue(
       new Error("503 Service Unavailable")

@@ -31,17 +31,21 @@ function redactString(value: string): string {
  * @param value The value to redact.
  * @returns A deep copy with secrets replaced by placeholders.
  */
-export function redactSecrets<T>(value: T): T {
+export function redactSecrets<T>(value: T, seen = new WeakSet<object>()): T {
   if (typeof value === "string") return redactString(value) as T;
-  if (Array.isArray(value)) return value.map((item) => redactSecrets(item)) as T;
   if (!value || typeof value !== "object") return value;
+
+  if (seen.has(value)) return "[Circular]" as T;
+  seen.add(value);
+
+  if (Array.isArray(value)) return value.map((item) => redactSecrets(item, seen)) as T;
 
   const redacted: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
     if (SECRET_KEY_PATTERN.test(key)) {
       redacted[key] = "[REDACTED]";
     } else {
-      redacted[key] = redactSecrets(entry);
+      redacted[key] = redactSecrets(entry, seen);
     }
   }
   return redacted as T;

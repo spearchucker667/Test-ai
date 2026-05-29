@@ -6,7 +6,19 @@ import { Chip } from "../components/Chip";
 import { DiagPreview } from "../components/DiagnosticsPreview";
 import { copyText } from "../utils/download";
 import { isValidSearchResponse } from "../utils/veniceValidation";
-import { MAX_SERIALIZED_UPLOAD_BYTES } from "../services/veniceClient";
+import { MAX_RAW_UPLOAD_BYTES } from "../services/veniceClient";
+import { ModuleProps } from "../types/app";
+
+interface SearchResultItem {
+  title?: string;
+  name?: string;
+  url?: string;
+  link?: string;
+  snippet?: string;
+  content?: string;
+  description?: string;
+  date?: string;
+}
 
 /** Allow only http/https URLs; return "#" for anything else (javascript:, data:, etc.). */
 export function safeHref(url: string | undefined): string {
@@ -19,10 +31,10 @@ export function safeHref(url: string | undefined): string {
   }
 }
 
-export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: any }) {
+export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
   const [query, setQuery] = useState("");
   const [provider, setProvider] = useState("brave");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [url, setUrl] = useState("");
   const [scrapeOutput, setScrapeOutput] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -41,6 +53,7 @@ export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: 
     if (!query.trim()) return;
     setError("");
     setLoading("search");
+    setSearchResults([]);
     abortRef.current = new AbortController();
     try {
       const { data } = await veniceFetch("/augment/search", {
@@ -51,6 +64,7 @@ export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: 
       });
       if (!isValidSearchResponse(data)) {
         setSearchResults([]);
+        setError("Unexpected search response from server.");
         return;
       }
       const results =
@@ -59,8 +73,9 @@ export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: 
         data?.items ||
         (Array.isArray(data) ? data : []);
       setSearchResults(Array.isArray(results) ? results : []);
-    } catch (err: any) {
-      if (err.name !== "AbortError") setError(err.message || "Search failed");
+    } catch (err: unknown) {
+      const error = err as { name?: string; message?: string };
+      if (error.name !== "AbortError") setError(error.message || "Search failed");
     } finally {
       setLoading("");
     }
@@ -68,8 +83,13 @@ export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: 
 
   async function runScrape() {
     if (!url.trim()) return;
+    if (safeHref(url.trim()) === "#") {
+      setError("Enter a valid public http(s) URL.");
+      return;
+    }
     setError("");
     setLoading("scrape");
+    setScrapeOutput("");
     abortRef.current = new AbortController();
     try {
       const { data } = await veniceFetch("/augment/scrape", {
@@ -84,8 +104,9 @@ export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: 
           data?.text ||
           JSON.stringify(data, null, 2)
       );
-    } catch (err: any) {
-      if (err.name !== "AbortError") setError(err.message || "Scrape failed");
+    } catch (err: unknown) {
+      const error = err as { name?: string; message?: string };
+      if (error.name !== "AbortError") setError(error.message || "Scrape failed");
     } finally {
       setLoading("");
     }
@@ -93,12 +114,13 @@ export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: 
 
   async function runParser() {
     if (!file) return;
-    if (file.size > MAX_SERIALIZED_UPLOAD_BYTES) {
-      setError(`File too large. Maximum upload size is ${Math.floor(MAX_SERIALIZED_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
+    if (file.size > MAX_RAW_UPLOAD_BYTES) {
+      setError(`File too large. Maximum upload size is ${Math.floor(MAX_RAW_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
       return;
     }
     setError("");
     setLoading("parser");
+    setParserOutput("");
     abortRef.current = new AbortController();
     try {
       const form = new FormData();
@@ -112,9 +134,10 @@ export function SearchScrapeModule({ state, dispatch }: { state: any; dispatch: 
         isFormData: true,
       });
       setParserOutput(data?.text || JSON.stringify(data, null, 2));
-    } catch (err: any) {
-      if (err.name !== "AbortError")
-        setError(err.message || "Text parser failed");
+    } catch (err: unknown) {
+      const error = err as { name?: string; message?: string };
+      if (error.name !== "AbortError")
+        setError(error.message || "Text parser failed");
     } finally {
       setLoading("");
     }

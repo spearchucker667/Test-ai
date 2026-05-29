@@ -12,13 +12,20 @@ import { ModelRefreshButton } from "../components/ModelRefreshButton";
 import { DiagPreview } from "../components/DiagnosticsPreview";
 import { StatusBlock } from "../components/StatusBlock";
 import { CollapsibleSection } from "../components/CollapsibleSection";
+import { ModuleProps } from "../types/app";
 
-export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
+interface ChatUiMessage {
+  id: string;
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export function ChatModule({ state, dispatch }: ModuleProps) {
   const [systemPrompt, setSystemPrompt] = useState(
     state.settings.defaultSystemPrompt
   );
   const [userPrompt, setUserPrompt] = useState("");
-  const [messages, setMessages] = useState<any[]>([
+  const [messages, setMessages] = useState<ChatUiMessage[]>([
     {
       id: "welcome",
       role: "assistant",
@@ -41,11 +48,26 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
   const [error, setError] = useState("");
   const [promptTouched, setPromptTouched] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
+  const runIdRef = useRef(0);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, loading]);
+
+  useEffect(() => {
+    setSystemPrompt(state.settings.defaultSystemPrompt);
+    setWebSearch(state.settings.webSearch);
+    setWebScraping(state.settings.webScraping);
+    setWebCitations(state.settings.webCitations);
+    setIncludeVeniceSystemPrompt(state.settings.includeVeniceSystemPrompt);
+  }, [
+    state.settings.defaultSystemPrompt,
+    state.settings.webSearch,
+    state.settings.webScraping,
+    state.settings.webCitations,
+    state.settings.includeVeniceSystemPrompt,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -62,17 +84,18 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
     }
     setError("");
     setLoading(true);
+    const runId = ++runIdRef.current;
 
-    const userMessage = { id: crypto.randomUUID(), role: "user", content: userPrompt.trim() };
+    const userMessage: ChatUiMessage = { id: crypto.randomUUID(), role: "user", content: userPrompt.trim() };
     const conversation = [
-      { role: "system", content: systemPrompt || DEFAULT_SYSTEM_PROMPT },
+      { role: "system" as const, content: systemPrompt || DEFAULT_SYSTEM_PROMPT },
       ...messages.filter((m) => ["user", "assistant"].includes(m.role)),
       userMessage,
     ];
     setMessages((prev) => [
       ...prev,
       userMessage,
-      { id: crypto.randomUUID(), role: "assistant", content: "" },
+      { id: crypto.randomUUID(), role: "assistant", content: "" } as ChatUiMessage,
     ]);
     setUserPrompt("");
 
@@ -119,7 +142,9 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
           model: state.selectedChatModel,
           timestamp: Date.now(),
         });
+        if (runIdRef.current !== runId) return;
         const chats = await StorageService.getItems("chats");
+        if (runIdRef.current !== runId) return;
         dispatch({ type: "SET_CHATS", items: chats });
       } else {
         const { data } = await veniceFetch("/chat/completions", {
@@ -136,6 +161,7 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
           data.choices[0]?.text ||
           "";
         setMessages((prev) => {
+          if (runIdRef.current !== runId) return prev;
           const next = [...prev];
           next[next.length - 1] = { ...next[next.length - 1], role: "assistant", content };
           return next;
@@ -147,14 +173,18 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
           model: state.selectedChatModel,
           timestamp: Date.now(),
         });
+        if (runIdRef.current !== runId) return;
         const chats = await StorageService.getItems("chats");
+        if (runIdRef.current !== runId) return;
         dispatch({ type: "SET_CHATS", items: chats });
       }
-    } catch (err: any) {
-      if (err.name !== "AbortError") {
-        setError(err.message || "Chat request failed");
+    } catch (err: unknown) {
+      const error = err as { name?: string; message?: string };
+      if (error.name !== "AbortError") {
+        setError(error.message || "Chat request failed");
       }
       setMessages((prev) => {
+        if (runIdRef.current !== runId) return prev;
         const next = [...prev];
         if (
           next[next.length - 1]?.role === "assistant" &&
@@ -168,11 +198,14 @@ export function ChatModule({ state, dispatch }: { state: any; dispatch: any }) {
         return next;
       });
     } finally {
-      setLoading(false);
+      if (runIdRef.current === runId) {
+        setLoading(false);
+      }
     }
   }
 
   function cancel() {
+    runIdRef.current++;
     abortRef.current?.abort();
     setLoading(false);
   }

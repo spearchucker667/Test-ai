@@ -19,6 +19,7 @@ npm run typecheck
 npm test
 npm run build
 npm run dist:win
+npm run checksum:release
 npm run verify:dist:win
 ```
 
@@ -40,6 +41,7 @@ npm run typecheck
 npm test
 npm run build
 npm run dist:mac
+npm run checksum:release
 npm run verify:dist:mac
 ```
 

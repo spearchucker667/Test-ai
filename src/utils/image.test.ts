@@ -58,6 +58,10 @@ describe("normalizeImageData", () => {
     expect(normalizeImageData(url)).toBe(url);
   });
 
+  it("rejects insecure http image URLs", () => {
+    expect(normalizeImageData("http://example.com/img.png")).toBeNull();
+  });
+
   /** Verifies that bare base64 strings are wrapped in a PNG data URL. */
   it("wraps a bare base64 string in a data URL", () => {
     // normalizeImageData requires length > 80 to treat as raw base64

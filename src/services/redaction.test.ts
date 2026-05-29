@@ -19,4 +19,15 @@ describe("redactSecrets", () => {
     expect(serialized).not.toContain("vn-token-value");
     expect(serialized).toContain("[REDACTED]");
   });
+
+  // BUG-011 regression guard: redaction must not recurse forever on cyclic objects.
+  it("replaces cyclic references with a placeholder", () => {
+    const value: { name: string; self?: unknown } = { name: "diagnostics" };
+    value.self = value;
+
+    expect(redactSecrets(value)).toEqual({
+      name: "diagnostics",
+      self: "[Circular]",
+    });
+  });
 });

@@ -1,6 +1,6 @@
 /** @fileoverview Core application type definitions for state, actions, and UI models. */
 
-import { DiagnosticsEntry, ModelInfo } from "./venice";
+import { DiagnosticsEntry } from "./venice";
 import { GalleryImage } from "./storage";
 
 /** Represents a single message in a chat conversation. */
@@ -67,13 +67,13 @@ export type AppState = typeof initialState;
 export type AppAction =
   | { type: "SET_TAB"; tab: string }
   | { type: "TOGGLE_SOURCE_PANEL" }
-  | { type: "SET_MODELS"; models: any; fallback?: boolean; error?: string }
+  | { type: "SET_MODELS"; models: Record<string, unknown[]> | undefined; fallback?: boolean; error?: string }
   | { type: "SET_SELECTED_CHAT_MODEL"; model: string }
   | { type: "SET_SELECTED_IMAGE_MODEL"; model: string }
   | { type: "SET_SETTINGS"; settings: Partial<AppSettings> }
   | { type: "SET_DIAGNOSTICS"; diagnostics: Partial<DiagnosticsEntry> }
   | { type: "SET_GALLERY"; items: GalleryImage[] }
-  | { type: "SET_CHATS"; items: any[] }
+  | { type: "SET_CHATS"; items: Array<Record<string, unknown>> }
   | { type: "SET_CHAT_DRAFT"; patch: Partial<AppState['chatDraft']> }
   | { type: "SET_IMAGE_DRAFT"; patch: Partial<ImageDraft> }
   | { type: "SET_BATCH_DRAFT"; patch: Partial<BatchDraft> }
@@ -83,3 +83,9 @@ export type AppAction =
 
 /** Dispatch function type for the global application reducer. */
 export type AppDispatch = React.Dispatch<AppAction>;
+
+/** Shared props type for feature modules that consume global state + dispatch. */
+export interface ModuleProps {
+  state: AppState;
+  dispatch: AppDispatch;
+}

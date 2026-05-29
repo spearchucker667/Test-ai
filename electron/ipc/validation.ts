@@ -3,7 +3,8 @@
 
 // Code Owner: fayeblade (@spearchucker667)
 // IPC input validation — critical security boundary between renderer and main process.
-export const MAX_VENICE_IPC_BODY_BYTES = 25 * 1024 * 1024;
+import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
+export const MAX_VENICE_IPC_BODY_BYTES = VENICE_MAX_BODY_BYTES;
 
 import {
   ALLOWED_VENICE_ENDPOINTS,

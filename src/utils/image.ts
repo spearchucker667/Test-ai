@@ -16,27 +16,28 @@ export function stripDataUrlPrefix(dataUrl: string) {
  * @param value An unknown value that may represent image data.
  * @returns A normalized data URL or HTTPS URL, or null if the value is unrecognisable.
  */
-export function normalizeImageData(value: any): string | null {
+export function normalizeImageData(value: unknown): string | null {
   if (!value) return null;
   if (typeof value === "string") {
     if (value.startsWith("data:image/")) return value;
-    if (/^https?:\/\//i.test(value)) return value;
+    if (/^https:\/\//i.test(value)) return value;
     if (value.length > 80 && /^[A-Za-z0-9+/=\s]+$/.test(value)) {
       return "data:image/png;base64," + value.replace(/\s/g, "");
     }
     return null;
   }
   if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
     return normalizeImageData(
-      value.b64_json ||
-        value.b64 ||
-        value.base64 ||
-        value.dataBase64 ||  // Electron: binary PNG response serialized to base64
-        value.dataUrl ||     // Web: binary PNG response converted to data URL
-        value.image ||
-        value.url ||
-        value.data ||
-        value.content
+      record.b64_json ||
+        record.b64 ||
+        record.base64 ||
+        record.dataBase64 ||  // Electron: binary PNG response serialized to base64
+        record.dataUrl ||     // Web: binary PNG response converted to data URL
+        record.image ||
+        record.url ||
+        record.data ||
+        record.content
     );
   }
   return null;
@@ -48,25 +49,30 @@ export function normalizeImageData(value: any): string | null {
  * @param payload A response payload that may contain images in various fields.
  * @returns An array of unique normalised image URLs.
  */
-export function extractImages(payload: any): string[] {
+export function extractImages(payload: unknown): string[] {
   const candidates: string[] = [];
-  const push = (x: any) => {
+  const push = (x: unknown) => {
     const normalized = normalizeImageData(x);
     if (normalized) candidates.push(normalized);
   };
 
-  if (Array.isArray(payload?.images)) payload.images.forEach(push);
-  if (Array.isArray(payload?.data)) payload.data.forEach(push);
-  if (payload?.image) push(payload?.image);
-  if (payload?.dataUrl) push(payload?.dataUrl);       // web: binary PNG response
-  if (payload?.dataBase64) push(payload?.dataBase64); // Electron: binary PNG response
-  if (payload?.b64_json) push(payload?.b64_json);
-  if (payload?.base64) push(payload?.base64);
-  if (payload?.url) push(payload?.url);
+  const record =
+    payload && typeof payload === "object"
+      ? (payload as Record<string, unknown>)
+      : null;
+
+  if (Array.isArray(record?.images)) record.images.forEach(push);
+  if (Array.isArray(record?.data)) record.data.forEach(push);
+  if (record?.image) push(record.image);
+  if (record?.dataUrl) push(record.dataUrl);       // web: binary PNG response
+  if (record?.dataBase64) push(record.dataBase64); // Electron: binary PNG response
+  if (record?.b64_json) push(record.b64_json);
+  if (record?.base64) push(record.base64);
+  if (record?.url) push(record.url);
 
   if (!candidates.length && typeof payload === "string") push(payload);
-  if (!candidates.length && payload && typeof payload === "object") {
-    Object.values(payload).forEach((v) => {
+  if (!candidates.length && record) {
+    Object.values(record).forEach((v) => {
       if (Array.isArray(v)) v.forEach(push);
       else push(v);
     });
@@ -82,8 +88,9 @@ export function extractImages(payload: any): string[] {
  * @param suffix Optional suffix to append before the extension.
  * @returns A sanitised PNG filename.
  */
-export function galleryFilename(item: any, index = 0, suffix = "") {
-  const safeModel = String(item?.model || "venice").replace(/[^a-z0-9_-]+/gi, "-").slice(0, 40);
-  const id = String(item?.id || index).replace(/[^a-z0-9_-]+/gi, "-").slice(0, 60);
+export function galleryFilename(item: unknown, index = 0, suffix = "") {
+  const record = item && typeof item === "object" ? (item as Record<string, unknown>) : {};
+  const safeModel = String(record.model || "venice").replace(/[^a-z0-9_-]+/gi, "-").slice(0, 40);
+  const id = String(record.id || index).replace(/[^a-z0-9_-]+/gi, "-").slice(0, 60);
   return `${safeModel}-${id}${suffix}.png`;
 }

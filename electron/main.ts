@@ -25,7 +25,7 @@ function rendererCsp(): string {
     "default-src 'self'",
     `script-src ${scriptSrc}`,
     `style-src ${styleSrc}`,
-    "img-src 'self' data: blob:",
+    "img-src 'self' data: blob: https:",
     `connect-src ${connectSrc}`,
     "font-src 'self' data:",
     "media-src 'self' blob:",

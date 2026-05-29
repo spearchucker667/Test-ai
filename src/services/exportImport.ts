@@ -2,15 +2,21 @@
 
 import { STORE_NAMES } from "../constants/venice";
 import { redactSecrets } from "./redaction";
+import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
 
 /** Current schema version for export payloads. */
 export const EXPORT_SCHEMA_VERSION = 1;
 
 /** Maximum allowed size for an import JSON string in bytes. */
-export const MAX_IMPORT_JSON_BYTES = 25 * 1024 * 1024;
+export const MAX_IMPORT_JSON_BYTES = VENICE_MAX_BODY_BYTES;
 
 /** Ordered list of stores eligible for export and import. */
 const EXPORT_STORES = ["images", "chats", "settings"] as const;
+
+/** Per-field upper bounds to reject obviously malformed imports. */
+const MAX_RECORD_ID_LENGTH = 256;
+const MAX_TEXT_FIELD_CHARS = 100_000;
+const MAX_IMAGE_FIELD_BYTES = 20 * 1024 * 1024;
 
 /** Union type of exportable store names. */
 type ExportStore = (typeof EXPORT_STORES)[number];
@@ -62,6 +68,14 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
+function isFiniteTimestamp(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value) && value > 0;
+}
+
+function isShortString(value: unknown, maxChars: number): value is string {
+  return typeof value === "string" && value.length <= maxChars;
+}
+
 /**
  * Sanitizes a single record for import, stripping secrets and ensuring required fields.
  * @param store The target store name.
@@ -82,12 +96,27 @@ function sanitizeRecord(store: ExportStore, value: unknown): Record<string, unkn
   if (typeof record.id !== "string" || record.id.trim().length === 0) {
     record.id = crypto.randomUUID();
   }
-  if (typeof record.timestamp !== "number") {
+  if (!isShortString(record.id, MAX_RECORD_ID_LENGTH)) return null;
+
+  if (!isFiniteTimestamp(record.timestamp)) {
     record.timestamp = Date.now();
   }
 
-  if (store === "images" && typeof record.image !== "string") return null;
-  if (store === "chats" && typeof record.prompt !== "string" && typeof record.response !== "string") return null;
+  if (store === "images") {
+    if (typeof record.image !== "string") return null;
+    if (byteLength(record.image) > MAX_IMAGE_FIELD_BYTES) return null;
+    if (record.prompt !== undefined && !isShortString(record.prompt, MAX_TEXT_FIELD_CHARS)) return null;
+    if (record.negative !== undefined && !isShortString(record.negative, MAX_TEXT_FIELD_CHARS)) return null;
+  }
+
+  if (store === "chats") {
+    const hasPrompt = typeof record.prompt === "string";
+    const hasResponse = typeof record.response === "string";
+    if (!hasPrompt && !hasResponse) return null;
+    if (hasPrompt && !isShortString(record.prompt, MAX_TEXT_FIELD_CHARS)) return null;
+    if (hasResponse && !isShortString(record.response, MAX_TEXT_FIELD_CHARS)) return null;
+  }
+
   if (store === "settings" && !isPlainObject(record.value)) return null;
 
   if (store === "settings") {

@@ -7,9 +7,13 @@ import { desktopVenice, isElectron } from "./desktopBridge";
 import type { VeniceForgeResponse } from "../types/desktop";
 import type { DiagnosticsEntry } from "../types/venice";
 import type { AppDispatch } from "../types/app";
+import { MIB, VENICE_MAX_RAW_UPLOAD_BYTES, VENICE_MAX_SERIALIZED_UPLOAD_BYTES } from "../shared/limits";
 
-/** Maximum allowed upload size in bytes (25 MiB). */
-export const MAX_SERIALIZED_UPLOAD_BYTES = 25 * 1024 * 1024;
+/** Maximum raw upload file size accepted by the renderer. */
+export const MAX_RAW_UPLOAD_BYTES = VENICE_MAX_RAW_UPLOAD_BYTES;
+
+/** Maximum serialized upload size accepted over IPC. */
+export const MAX_SERIALIZED_UPLOAD_BYTES = VENICE_MAX_SERIALIZED_UPLOAD_BYTES;
 
 /** In-flight request deduplication map (API-004). */
 const inFlight = new Map<string, Promise<{ data: unknown; response: Response | VeniceForgeResponse; headers: Record<string, string>; diagnostics: Partial<DiagnosticsEntry> }>>();
@@ -276,8 +280,11 @@ async function serializeFormData(formData: FormData): Promise<SerializedFormData
     if (value instanceof File) {
       const arrayBuffer = await value.arrayBuffer();
       const estimatedSerializedBytes = Math.ceil(arrayBuffer.byteLength * 4 / 3);
+      if (arrayBuffer.byteLength > MAX_RAW_UPLOAD_BYTES) {
+        throw new Error(`File too large. Maximum upload size is ${Math.floor(MAX_RAW_UPLOAD_BYTES / MIB)} MiB.`);
+      }
       if (estimatedSerializedBytes > MAX_SERIALIZED_UPLOAD_BYTES) {
-        throw new Error(`File too large. Maximum upload size is ${Math.floor(MAX_SERIALIZED_UPLOAD_BYTES / (1024 * 1024))} MiB.`);
+        throw new Error(`Serialized upload too large. Maximum raw upload size is ${Math.floor(MAX_RAW_UPLOAD_BYTES / MIB)} MiB.`);
       }
       const bytes = new Uint8Array(arrayBuffer);
       // 0x8000 (32 KiB) chunks avoid stack overflow when spreading large typed arrays.
@@ -334,7 +341,7 @@ async function veniceFetchDesktop(
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const startedAt = nowIso();
-    const diagHeaders: Record<string, string> = {};
+    let diagHeaders: Record<string, string> = {};
     let response: VeniceForgeResponse | null = null;
     try {
       if (signal?.aborted) throw new DOMException("Request aborted", "AbortError");
@@ -347,6 +354,7 @@ async function veniceFetchDesktop(
         },
         signal
       );
+      diagHeaders = response.headers || {};
       const errorMsg = response.ok ? "" : normalizeError(response.status, readDesktopErrorBody(response.body));
       const modelName = extractModelName(serializedBody, response.body);
       const diag = summarizeDiagnostics({
@@ -405,10 +413,10 @@ async function veniceFetchDesktop(
       }
 
       const isNetworkFailure = lastError.status == null || lastError.status === 0;
+      const isRetryableStatus =
+        typeof lastError.status === "number" && [429, 500, 503].includes(lastError.status);
       if (
-        lastError.status !== undefined &&
-        lastError.status !== null &&
-        ([429, 500, 503].includes(lastError.status) || isNetworkFailure) &&
+        (isNetworkFailure || isRetryableStatus) &&
         attempt < maxAttempts - 1
       ) {
         await sleep(calculateBackoff(attempt + 1, 1200, 9000), signal);
@@ -580,9 +588,11 @@ async function _veniceFetch(
       if (err instanceof DOMException && err.name === "AbortError") throw err;
 
       const errorObj = err as VeniceApiError;
-      const isFetchFailure = err instanceof TypeError;
+      const isFetchFailure =
+        err instanceof TypeError ||
+        (err instanceof DOMException && err.name === "TimeoutError");
       const normalized = isFetchFailure
-        ? "TypeError/fetch failure: likely CORS, network, browser sandbox, or blocked request. " +
+        ? "Fetch failure: likely CORS, network, browser sandbox, timeout, or blocked request. " +
           (errorObj.message || "")
         : errorObj.message || "Request failed";
 
@@ -606,12 +616,12 @@ async function _veniceFetch(
         });
       }
 
-      if (
+      const retryableStatus =
         lastError.status !== undefined &&
         lastError.status !== null &&
-        (isFetchFailure || [429, 500, 503].includes(lastError.status)) &&
-        attempt < maxAttempts - 1
-      ) {
+        [429, 500, 503].includes(lastError.status);
+
+      if ((isFetchFailure || retryableStatus) && attempt < maxAttempts - 1) {
         await sleep(calculateBackoff(attempt + 1, 1200, 9000), signal);
         continue;
       }
@@ -693,7 +703,9 @@ export async function veniceStreamChat(
         status: response.status,
         ok: response.ok,
         headers: response.headers || {},
-        error: "",
+        error: response.ok
+          ? ""
+          : normalizeError(response.status, readDesktopErrorBody(response.body)),
         startedAt,
         endedAt: nowIso(),
         model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
@@ -733,6 +745,14 @@ export async function veniceStreamChat(
   }
 
   const headers = parseDiagnosticsHeaders(response);
+  let streamError = "";
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    let parsed: unknown = null;
+    try { parsed = JSON.parse(text); } catch { /* non-JSON error body — use raw text */ }
+    streamError = normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText));
+  }
+
   dispatch?.({
     type: "SET_DIAGNOSTICS",
     diagnostics: summarizeDiagnostics({
@@ -741,7 +761,7 @@ export async function veniceStreamChat(
       status: response.status,
       ok: response.ok,
       headers,
-      error: "",
+      error: streamError,
       startedAt,
       endedAt: nowIso(),
       model: typeof payloadRecord?.model === "string" ? payloadRecord.model : null,
@@ -749,12 +769,7 @@ export async function veniceStreamChat(
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    let parsed: unknown = null;
-    try { parsed = JSON.parse(text); } catch { /* non-JSON error body — use raw text */ }
-    throw new Error(
-      normalizeError(response.status, readWebErrorBody(parsed, text, response.statusText))
-    );
+    throw new Error(streamError);
   }
 
   if (!response.body)

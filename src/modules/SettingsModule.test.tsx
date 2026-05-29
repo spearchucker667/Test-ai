@@ -136,6 +136,36 @@ describe("SettingsModule", () => {
     });
   });
 
+  // BUG-003 regression guard: clearing settings must reset every global settings-backed default.
+  it("dispatches a complete settings reset when local settings are cleared", async () => {
+    renderSettings({
+      settings: {
+        ...initialState.settings,
+        defaultSystemPrompt: "custom",
+        webSearch: "auto",
+        includeVeniceSystemPrompt: false,
+        webScraping: true,
+        webCitations: true,
+      },
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /clear local settings/i }));
+
+    await waitFor(() => {
+      expect(StorageService.clearStore).toHaveBeenCalledWith("settings");
+      expect(mockDispatch).toHaveBeenCalledWith({
+        type: "SET_SETTINGS",
+        settings: {
+          defaultSystemPrompt: initialState.settings.defaultSystemPrompt,
+          webSearch: "off",
+          includeVeniceSystemPrompt: true,
+          webScraping: false,
+          webCitations: false,
+        },
+      });
+    });
+  });
+
   it("dismisses the ConfirmModal when cancel is clicked and does NOT clear history", async () => {
     renderSettings();
 
@@ -171,6 +201,33 @@ describe("SettingsModule", () => {
     );
     // Pre-import backup save dialog should succeed.
     vi.mocked(desktopFiles.exportJson).mockResolvedValue(true);
+    vi.mocked(validateImportJson).mockReturnValue({
+      payload: {
+        data: {
+          images: [],
+          chats: [],
+          settings: [
+            {
+              id: "app-settings",
+              timestamp: 1,
+              value: { defaultSystemPrompt: "imported prompt", webSearch: "off" },
+            },
+          ],
+        },
+      } as any,
+      summary: { imagesFound: 0, chatsFound: 0, settingsFound: 1, skippedRecords: 0 },
+    });
+    vi.mocked(StorageService.getItems)
+      .mockResolvedValueOnce([]) // images before backup
+      .mockResolvedValueOnce([]) // chats before backup
+      .mockResolvedValueOnce([
+        { id: "app-settings", timestamp: 999, value: { defaultSystemPrompt: "old prompt" } },
+      ]) // settings before backup
+      .mockResolvedValueOnce([]) // images after import
+      .mockResolvedValueOnce([]) // chats after import
+      .mockResolvedValueOnce([
+        { id: "app-settings", timestamp: 999, value: { defaultSystemPrompt: "old prompt" } },
+      ]); // settings after import (new one not latest by timestamp)
 
     renderSettings();
 
@@ -180,6 +237,12 @@ describe("SettingsModule", () => {
       expect(validateImportJson).toHaveBeenCalled();
       expect(mockDispatch).toHaveBeenCalledWith(
         expect.objectContaining({ type: "SET_GALLERY" })
+      );
+      expect(mockDispatch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "SET_SETTINGS",
+          settings: expect.objectContaining({ defaultSystemPrompt: "imported prompt" }),
+        })
       );
     });
 

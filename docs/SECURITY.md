@@ -55,7 +55,7 @@ The Express proxy adds the following headers to every response:
 
 ## API Key Storage
 
-Storage API: Electron `safeStorage` (Windows DPAPI, macOS Keychain). If OS-level encryption is unavailable (e.g., missing dependencies or running on unsupported environments), the application will **refuse to start** to prevent storing the API key in plaintext. Plaintext fallback is explicitly blocked by default unless overridden via environment variables.
+Storage API: Electron `safeStorage` (Windows DPAPI, macOS Keychain). If OS-level encryption is unavailable (e.g., missing dependencies or running on unsupported environments), saving an API key fails to prevent plaintext storage. Plaintext fallback is explicitly blocked by default unless overridden via environment variables.
 
 The key is never exported, imported, written to IndexedDB, copied into diagnostics, or exposed to the renderer.
 

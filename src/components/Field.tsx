@@ -7,7 +7,7 @@ export function Field({ label, children }: { label: string; children: React.Reac
   let targetId: string | undefined = undefined;
 
   if (React.isValidElement(children)) {
-    const childElement = children as React.ReactElement<any>;
+    const childElement = children as React.ReactElement<{ id?: string }>;
     targetId = childElement.props.id || generatedId;
     childWithId = React.cloneElement(childElement, { id: targetId });
   }

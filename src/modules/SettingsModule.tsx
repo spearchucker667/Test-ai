@@ -8,6 +8,7 @@ import { StatusBlock } from "../components/StatusBlock";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { isElectron, desktopApiKey, desktopApp, desktopFiles, desktopUpdates } from "../services/desktopBridge";
 import { createExportPayload, validateImportJson } from "../services/exportImport";
+import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
 
 interface SettingsModuleProps {
   state: any;
@@ -103,12 +104,19 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
   async function clearSettings() {
     await StorageService.clearStore("settings");
-    dispatch({ type: "SET_SETTINGS", settings: { ...state.settings, defaultSystemPrompt: DEFAULT_SYSTEM_PROMPT } });
+    const clearedSettings = {
+      defaultSystemPrompt: DEFAULT_SYSTEM_PROMPT,
+      webSearch: "off",
+      includeVeniceSystemPrompt: true,
+      webScraping: false,
+      webCitations: false,
+    };
+    dispatch({ type: "SET_SETTINGS", settings: clearedSettings });
     setSystem(DEFAULT_SYSTEM_PROMPT);
-    setWebSearch("off");
-    setIncludePrompt(true);
-    setWebScraping(false);
-    setWebCitations(false);
+    setWebSearch(clearedSettings.webSearch);
+    setIncludePrompt(clearedSettings.includeVeniceSystemPrompt);
+    setWebScraping(clearedSettings.webScraping);
+    setWebCitations(clearedSettings.webCitations);
     setStatus("Local settings cleared.");
     setStatusError("");
   }
@@ -239,8 +247,10 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       ]);
       dispatch({ type: "SET_GALLERY", items: images });
       dispatch({ type: "SET_CHATS", items: chats });
-      const latestSettings = settings[0]?.value;
-      if (latestSettings) dispatch({ type: "SET_SETTINGS", settings: latestSettings });
+      const importedAppSettings = payload.data.settings.find((entry) => entry.id === "app-settings")?.value;
+      const fallbackAppSettings = settings.find((entry) => entry.id === "app-settings")?.value;
+      const nextSettings = importedAppSettings || fallbackAppSettings;
+      if (nextSettings) dispatch({ type: "SET_SETTINGS", settings: nextSettings });
 
       setStatus(
         `Imported ${summary.imagesFound} images, ${summary.chatsFound} chats, ${summary.settingsFound} settings. ` +
@@ -266,7 +276,7 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
               {apiKeyConfigured ? "API key configured" : "No API key"}
             </Chip>
           ) : (
-            <Chip tone="ok">{apiKeyConfigured ? "Local Key Active" : "API key Proxied"}</Chip>
+            <Chip tone="ok">{apiKeyConfigured ? "Server key active" : "API key proxied"}</Chip>
           )}
         </div>
       </div>
@@ -400,12 +410,12 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
                 readOnly
                 rows={7}
                 className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-3 text-sm text-emerald-400 font-mono focus:outline-none resize-none"
-                value={`VENICE_API_KEY="replace_with_your_venice_inference_key"\nMAX_PROXY_BODY_BYTES=26214400\nRATE_LIMIT_WINDOW_MS=60000\nRATE_LIMIT_MAX_REQUESTS=60\nDISABLE_HMR=false\nPORT=3000`}
+                value={`VENICE_API_KEY="replace_with_your_venice_inference_key"\nMAX_PROXY_BODY_BYTES=${VENICE_MAX_BODY_BYTES}\nRATE_LIMIT_WINDOW_MS=60000\nRATE_LIMIT_MAX_REQUESTS=60\nDISABLE_HMR=false\nPORT=3000`}
               />
               <button
                 className="absolute top-2 right-2 bg-white/10 hover:bg-white/20 text-white rounded-md px-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all opacity-0 group-hover:opacity-100"
                 onClick={() => {
-                  navigator.clipboard.writeText(`VENICE_API_KEY="replace_with_your_venice_inference_key"\nMAX_PROXY_BODY_BYTES=26214400\nRATE_LIMIT_WINDOW_MS=60000\nRATE_LIMIT_MAX_REQUESTS=60\nDISABLE_HMR=false\nPORT=3000`);
+                  navigator.clipboard.writeText(`VENICE_API_KEY="replace_with_your_venice_inference_key"\nMAX_PROXY_BODY_BYTES=${VENICE_MAX_BODY_BYTES}\nRATE_LIMIT_WINDOW_MS=60000\nRATE_LIMIT_MAX_REQUESTS=60\nDISABLE_HMR=false\nPORT=3000`);
                   setStatus("Copied to clipboard!");
                 }}
               >

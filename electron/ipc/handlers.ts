@@ -15,9 +15,10 @@ import { abortVeniceRequest, performVeniceRequest, readResponseError } from "../
 import { validateApiKeyInput, validateVeniceIpcRequest } from "./validation";
 import { redactErrorMessage } from "../../src/services/redaction";
 import { registerUpdateHandlers } from "./updates";
+import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
 
 /** Maximum size in bytes for JSON import and export files. */
-const MAX_JSON_FILE_BYTES = 25 * 1024 * 1024;
+const MAX_JSON_FILE_BYTES = VENICE_MAX_BODY_BYTES;
 
 /** Tests connectivity to the Venice API using the stored API key.
  *  @returns A result object indicating success or failure with a message.

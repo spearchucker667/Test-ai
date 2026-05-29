@@ -3,8 +3,15 @@
 import { DB_NAME, DB_VERSION, STORE_NAMES } from "../constants/venice";
 import { encryptData, decryptData } from "./cryptoService";
 
+type StoreName = (typeof STORE_NAMES)[number];
+
 /** List of store names whose records are encrypted before persistence. */
-const ENCRYPTED_STORES = ["chats", "settings", "images"];
+const ENCRYPTED_STORES: StoreName[] = ["chats", "settings", "images"];
+
+export interface GetItemsResult<T = any> {
+  items: T[];
+  decryptFailures: number;
+}
 
 /**
  * Provides CRUD operations over IndexedDB with automatic encryption for
@@ -44,12 +51,12 @@ const StorageService = {
    * @param item The record to persist.
    * @returns A promise resolving to the saved record with generated id and timestamp.
    */
-  async saveItem(store: string, item: any): Promise<any> {
+  async saveItem<T extends Record<string, any>>(store: StoreName, item: T): Promise<T & { id: string; timestamp: number }> {
     const db = await this.openDB();
-    const id = item.id || crypto.randomUUID();
-    const timestamp = item.timestamp || Date.now();
+    const id = typeof item.id === "string" ? item.id : crypto.randomUUID();
+    const timestamp = typeof item.timestamp === "number" ? item.timestamp : Date.now();
 
-    let payload = { ...item, id, timestamp };
+    let payload: Record<string, any> = { ...item, id, timestamp };
     if (ENCRYPTED_STORES.includes(store)) {
       const encryptedData = await encryptData(payload);
       payload = { id, timestamp, data: encryptedData, _isEncryptedWrapper: true };
@@ -58,7 +65,7 @@ const StorageService = {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
       tx.objectStore(store).put(payload);
-      tx.oncomplete = () => resolve({ ...item, id, timestamp }); // Return unencrypted to caller
+      tx.oncomplete = () => resolve({ ...item, id, timestamp } as T & { id: string; timestamp: number }); // Return unencrypted to caller
       tx.onerror = () => reject(tx.error);
     });
   },
@@ -68,16 +75,17 @@ const StorageService = {
    * @param store The object store name to query.
    * @returns A promise resolving to an array of decrypted records sorted by timestamp descending.
    */
-  async getItems(store: string): Promise<any[]> {
+  async getItemsWithMeta<T = any>(store: StoreName): Promise<GetItemsResult<T>> {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readonly");
       const req = tx.objectStore(store).getAll();
       req.onsuccess = async () => {
         let results = req.result || [];
+        let decryptFailures = 0;
         if (ENCRYPTED_STORES.includes(store)) {
           const decrypted = await Promise.all(
-            results.map(async (row: any) => {
+            results.map(async (row: Record<string, unknown>) => {
                if (row._isEncryptedWrapper) {
                   const val = await decryptData(row.data);
                   return val === null ? null : val;
@@ -87,19 +95,25 @@ const StorageService = {
           );
           // BUG-001: surface silent decrypt failures so the user is aware data
           // could not be read (e.g. after key-store loss, data corruption, or browser/profile reset).
-          const failCount = decrypted.filter((v) => v === null).length;
-          if (failCount > 0) {
+          decryptFailures = decrypted.filter((v) => v === null).length;
+          if (decryptFailures > 0) {
             console.warn(
-              `[storageService] ${failCount} record(s) in "${store}" could not be decrypted and were skipped. ` +
+              `[storageService] ${decryptFailures} record(s) in "${store}" could not be decrypted and were skipped. ` +
               "This may indicate key-store loss, data corruption, or a browser/profile reset. The records are still persisted in IndexedDB."
             );
           }
           results = decrypted.filter(Boolean);
         }
-        resolve(results.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0)));
+        const sorted = results.sort((a: any, b: any) => (b.timestamp || 0) - (a.timestamp || 0));
+        resolve({ items: sorted as T[], decryptFailures });
       };
       req.onerror = () => reject(req.error);
     });
+  },
+
+  async getItems<T = any>(store: StoreName): Promise<T[]> {
+    const { items } = await this.getItemsWithMeta<T>(store);
+    return items;
   },
 
   /**
@@ -108,7 +122,7 @@ const StorageService = {
    * @param id The unique identifier of the record to delete.
    * @returns A promise resolving to true on success.
    */
-  async deleteItem(store: string, id: string): Promise<boolean> {
+  async deleteItem(store: StoreName, id: string): Promise<boolean> {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");
@@ -123,7 +137,7 @@ const StorageService = {
    * @param store The object store name to clear.
    * @returns A promise resolving to true on success.
    */
-  async clearStore(store: string): Promise<boolean> {
+  async clearStore(store: StoreName): Promise<boolean> {
     const db = await this.openDB();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(store, "readwrite");

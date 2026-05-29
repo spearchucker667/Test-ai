@@ -6,12 +6,24 @@ import { isValidChatResponse } from "../utils/veniceValidation";
 import { normalizeImageDraft } from "../utils/payloadBuilders";
 import { downloadImage } from "../utils/download";
 import { desktopFiles } from "../services/desktopBridge";
+import { generateImageWithWatermarkFallback } from "../services/imageWorkflowService";
 import { IMAGE_BATCH_INTER_REQUEST_DELAY_MS } from "../constants/venice";
-import { buildChatPayload, buildImagePayload } from "../utils/payloadBuilders";
+import { buildChatPayload } from "../utils/payloadBuilders";
 import { Field } from "../components/Field";
 import { Chip } from "../components/Chip";
 import { Markdown } from "../utils/markdown";
 import { DiagPreview } from "../components/DiagnosticsPreview";
+import { ModuleProps } from "../types/app";
+
+type BatchStatus = "pending" | "running" | "done" | "error" | "cancelled";
+
+interface BatchResult {
+  id: string;
+  prompt: string;
+  status: BatchStatus;
+  result: string | null;
+  error: string | null;
+}
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -25,14 +37,17 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) {
-  const draft = state.batchDraft || { type: "text", promptsText: "" };
-  const [results, setResults] = useState<any[]>([]);
+export function BatchModule({ state, dispatch }: ModuleProps) {
+  const draft = (state.batchDraft || { type: "text", promptsText: "" }) as {
+    type: "text" | "image";
+    promptsText: string;
+  };
+  const [results, setResults] = useState<BatchResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [promptsTouched, setPromptsTouched] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
-  function patch(updates: any) {
+  function patch(updates: { type?: "text" | "image"; promptsText?: string }) {
     dispatch({ type: "SET_BATCH_DRAFT", patch: updates });
   }
 
@@ -62,10 +77,10 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
       return;
     }
 
-    const newResults = lines.map((p: string) => ({
+    const newResults: BatchResult[] = lines.map((p: string) => ({
       id: crypto.randomUUID(),
       prompt: p,
-      status: "pending",
+      status: "pending" as const,
       result: null,
       error: null,
     }));
@@ -124,18 +139,25 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
             )
           );
         } else {
-          const payload = buildImagePayload(
+          const { data } = await generateImageWithWatermarkFallback(
             state.selectedImageModel,
             state.imageDraft,
+            {
+              signal: abortRef.current.signal,
+              dispatch,
+              onWatermarkRetry: () => {
+                dispatch({
+                  type: "ADD_TOAST",
+                  toast: {
+                    id: crypto.randomUUID(),
+                    message: "Watermark parameter was rejected; retried without it.",
+                    type: "warn",
+                  },
+                });
+              },
+            },
             newResults[i].prompt
           );
-
-          const { data } = await veniceFetch("/image/generate", {
-            method: "POST",
-            body: payload,
-            signal: abortRef.current.signal,
-            dispatch,
-          });
           const images = extractImages(data);
           if (!images.length) throw new Error("No image data returned.");
 
@@ -163,11 +185,12 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
             )
           );
         }
-      } catch (err: any) {
-        if (err.name !== "AbortError") {
+      } catch (err: unknown) {
+        const error = err as { name?: string; message?: string };
+        if (error.name !== "AbortError") {
           setResults((prev) =>
             prev.map((r, idx) =>
-              idx === i ? { ...r, status: "error", error: err.message } : r
+              idx === i ? { ...r, status: "error", error: error.message || "Batch task failed" } : r
             )
           );
         }
@@ -178,7 +201,9 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
       }
     }
 
+    const wasAborted = !!abortRef.current?.signal.aborted;
     setIsRunning(false);
+    if (wasAborted) return;
     if (draft.type === "text") {
       const chats = await StorageService.getItems("chats");
       dispatch({ type: "SET_CHATS", items: chats });
@@ -227,7 +252,7 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
             <Field label="Processing Type">
               <select
                 value={draft.type}
-                onChange={(e) => patch({ type: e.target.value })}
+                onChange={(e) => patch({ type: e.target.value as "text" | "image" })}
                 className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-all appearance-none"
               >
                 <option value="text">Text (Chat Model)</option>
@@ -327,18 +352,18 @@ export function BatchModule({ state, dispatch }: { state: any; dispatch: any }) 
                     <div className="rounded border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400 mt-1">{r.error}</div>
                   )}
 
-                  {r.status === "done" && draft.type === "text" && (
+                  {r.status === "done" && draft.type === "text" && r.result && (
                     <div className="mt-2 pt-3 border-t border-white/5 prose prose-invert max-w-none text-sm leading-relaxed prose-p:my-2 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-xl">
                       <Markdown text={r.result} />
                     </div>
                   )}
 
-                  {r.status === "done" && draft.type === "image" && (
+                  {r.status === "done" && draft.type === "image" && r.result && (
                     <div className="mt-2 group/img relative inline-block cursor-pointer" onClick={async () =>
-                        await downloadImage(r.result, `venice-batch-${i}.png`)
+                        await downloadImage(r.result as string, `venice-batch-${i}.png`)
                       }>
                       <img
-                        src={r.result}
+                        src={r.result as string}
                         alt={r.prompt}
                         className="rounded-lg object-cover max-w-[200px] border border-white/10 transition-transform duration-300 group-hover/img:scale-[1.02] shadow-lg"
                       />

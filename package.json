@@ -34,7 +34,7 @@
     "verify:dist:mac": "node scripts/verify-dist-mac.cjs",
     "checksum:release": "node scripts/checksum-release.cjs",
     "lint": "tsc --noEmit",
-    "lint:eslint": "eslint src electron server.ts",
+    "lint:eslint": "eslint src electron server.ts --max-warnings=96",
     "test:coverage": "vitest run --coverage",
     "smoke:electron": "vitest run tests/smoke/electron-smoke.test.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit --project tsconfig.electron.json",

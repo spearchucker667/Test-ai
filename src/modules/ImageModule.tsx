@@ -2,18 +2,21 @@
 // Image generation module — orchestrates params, preview, and history.
 import React, { useState, useRef, useEffect } from "react";
 import StorageService from "../services/storageService";
-import { veniceFetch } from "../services/veniceClient";
 import { extractImages, galleryFilename } from "../utils/image";
 import { downloadImage } from "../utils/download";
-import { upscaleGalleryImage, saveImageRecord as saveRecordService, refreshGallery } from "../services/imageWorkflowService";
+import {
+  upscaleGalleryImage,
+  saveImageRecord as saveRecordService,
+  refreshGallery,
+  generateImageWithWatermarkFallback,
+} from "../services/imageWorkflowService";
 import { IMAGE_BATCH_INTER_REQUEST_DELAY_MS } from "../constants/venice";
-import { buildImagePayload, normalizeImageDraft } from "../utils/payloadBuilders";
+import { normalizeImageDraft } from "../utils/payloadBuilders";
 import { DiagPreview } from "../components/DiagnosticsPreview";
-import { StatusBlock } from "../components/StatusBlock";
 import { ImageActionModal } from "../components/ImageActionModal";
 import { ImageGenerationForm } from "../components/ImageGenerationForm";
 import { ImageGenerationPreview } from "../components/ImageGenerationPreview";
-import { AppState, AppDispatch } from "../types/app";
+import { AppState, AppDispatch, ImageDraft } from "../types/app";
 import { GalleryImage } from "../types/storage";
 
 export function ImageModule({ state, dispatch }: { state: AppState; dispatch: AppDispatch }) {
@@ -25,6 +28,7 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
   const [promptTouched, setPromptTouched] = useState(false);
   const [expanded, setExpanded] = useState<GalleryImage | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const runIdRef = useRef(0);
 
   const recentHistory = React.useMemo(() => {
     const map = new Map<string, GalleryImage>();
@@ -38,7 +42,7 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
     return Array.from(map.values()).slice(0, 10);
   }, [state.gallery]);
 
-  function patch(updates: any) {
+  function patch(updates: Partial<ImageDraft>) {
     dispatch({ type: "SET_IMAGE_DRAFT", patch: updates });
   }
 
@@ -72,6 +76,7 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
     setError("");
     setSuccess("");
     setLoading(true);
+    const runId = ++runIdRef.current;
     abortRef.current = new AbortController();
     const signal = abortRef.current.signal;
 
@@ -99,19 +104,24 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
           patch({ generationProgress: `Generating image ${i + 1} of ${batchCount}...` });
         }
 
-        const payload = buildImagePayload(state.selectedImageModel, normalizedDraft);
-        let resRaw;
-        try {
-          resRaw = await veniceFetch("/image/generate", { method: "POST", body: payload, signal, dispatch });
-        } catch (err: any) {
-          if (err.status === 400 && String(err.message).toLowerCase().includes("watermark") && payload.hide_watermark) {
-            dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Watermark parameter was rejected by this model/endpoint; retried without it.", type: "warn" }});
-            delete payload.hide_watermark;
-            resRaw = await veniceFetch("/image/generate", { method: "POST", body: payload, signal, dispatch });
-          } else {
-            throw err;
+        const resRaw = await generateImageWithWatermarkFallback(
+          state.selectedImageModel,
+          normalizedDraft,
+          {
+            signal,
+            dispatch,
+            onWatermarkRetry: () => {
+              dispatch({
+                type: "ADD_TOAST",
+                toast: {
+                  id: crypto.randomUUID(),
+                  message: "Watermark parameter was rejected by this model/endpoint; retried without it.",
+                  type: "warn",
+                },
+              });
+            },
           }
-        }
+        );
 
         const images = extractImages(resRaw.data);
         if (!images.length) throw new Error("Image response did not contain detectable base64 image data or a URL.");
@@ -138,23 +148,29 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
         }, true);
 
         successCount++;
+        if (runIdRef.current !== runId) return;
         newImages.push(saved);
         patch({ currentImage: generatedImage, lastSavedImageId: saved.id, currentImages: [...newImages] });
       }
 
+      if (runIdRef.current !== runId) return;
       setSuccess(batchCount > 1 ? `Generated and auto-saved ${successCount} images.` : `Image generated and auto-saved to gallery: ${newImages[0].id}`);
-    } catch (err: any) {
-      if (err.name !== "AbortError" && err.message !== "AbortError") {
-        setError(err.message || "Image generation failed");
+    } catch (err: unknown) {
+      const error = err as { name?: string; message?: string };
+      if (runIdRef.current !== runId) return;
+      if (error.name !== "AbortError" && error.message !== "AbortError") {
+        setError(error.message || "Image generation failed");
         if (successCount > 0) setSuccess(`Generated and auto-saved ${successCount} of ${batchCount} images.`);
       } else {
         if (successCount > 0) setSuccess(`Generation cancelled. Saved ${successCount} images.`);
         else setSuccess("Generation cancelled.");
       }
     } finally {
-      if (successCount > 0) await refreshGallery(dispatch);
-      setLoading(false);
-      patch({ generationProgress: "" });
+      if (runIdRef.current === runId) {
+        if (successCount > 0) await refreshGallery(dispatch);
+        setLoading(false);
+        patch({ generationProgress: "" });
+      }
     }
   }
 
@@ -205,9 +221,10 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
       patch({ currentImage: saved.image, lastSavedImageId: saved.id });
       setExpanded(saved);
       setSuccess(`Enhanced/upscaled image saved to gallery: ${saved.id}`);
-    } catch (err: any) {
-      setError(err.message || "Upscale failed");
-      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: err.message || "Upscale failed", type: "error" } });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Upscale failed";
+      setError(message);
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message, type: "error" } });
     } finally {
       setUpscaling(false);
     }
@@ -222,7 +239,7 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
       patch({ currentImage: "", lastSavedImageId: null });
     }
     if (draft.currentImages?.length) {
-      patch({ currentImages: draft.currentImages.filter((img: any) => img.id !== expanded.id) });
+      patch({ currentImages: draft.currentImages.filter((img: GalleryImage) => img.id !== expanded.id) });
     }
     setExpanded(null);
     setSuccess("Image deleted.");
@@ -267,7 +284,13 @@ export function ImageModule({ state, dispatch }: { state: AppState; dispatch: Ap
           promptTouched={promptTouched}
           setPromptTouched={setPromptTouched}
           onGenerate={generate}
-          onCancel={() => abortRef.current?.abort()}
+          onCancel={() => {
+            runIdRef.current++;
+            abortRef.current?.abort();
+            abortRef.current = null;
+            setLoading(false);
+            patch({ generationProgress: "" });
+          }}
           onDownload={async () => {
             await downloadImage(draft.currentImage, "venice-image.png");
             dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: "Downloaded image", type: "info" } });

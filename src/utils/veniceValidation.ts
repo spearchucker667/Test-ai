@@ -8,13 +8,13 @@
 
 /** Represents a successful /models response. */
 export interface ModelListResponse {
-  data: any[];
+  data: unknown[];
 }
 
 /** Represents a successful /image/generate or /image/upscale response. */
 export interface ImageGenerateResponse {
   images?: string[];
-  data?: any[];
+  data?: unknown[];
 }
 
 /** Represents a successful /chat/completions response. */

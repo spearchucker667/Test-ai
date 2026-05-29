@@ -30,7 +30,7 @@ Venice's API documentation states that API keys are secrets and should not be ex
 
 ## Privacy and Data Limits
 
-Venice Forge stores chats, settings, and gallery records locally in IndexedDB. Chats and settings are encrypted by the app before storage; gallery image records are local but not encrypted by this app. API requests still leave the device and are processed by Venice and any applicable upstream provider or privacy mode selected by Venice.
+Venice Forge stores chats, settings, and gallery records locally in IndexedDB. These records are encrypted by the app before storage using a browser-managed AES-GCM key stored in same-origin IndexedDB. This reduces casual local inspection risk but is not equivalent to OS credential storage. API requests still leave the device and are processed by Venice and any applicable upstream provider or privacy mode selected by Venice.
 
 Venice's own privacy material describes multiple privacy modes with different protections and trade-offs. Users should consult Venice's current privacy pages before sending sensitive content.
 

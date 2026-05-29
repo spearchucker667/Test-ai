@@ -72,6 +72,7 @@ Useful scripts:
 ```bash
 npm run verify:icon
 npm run dist:win
+npm run checksum:release
 npm run verify:dist:win
 ```
 
@@ -85,6 +86,7 @@ Artifacts are written to `release/`:
 ```bash
 npm run verify:icon
 npm run dist:mac
+npm run checksum:release
 npm run verify:dist:mac
 ```
 
@@ -173,6 +175,3 @@ See [docs/LEGAL.md](docs/LEGAL.md) for the public-readiness legal notes, tradema
 - [CHANGELOG.md](CHANGELOG.md) — Version history
 - [CONTRIBUTING.md](CONTRIBUTING.md) — How to contribute
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Community standards
-
-
-IndexedDB records are encrypted with a browser-managed AES-GCM key stored in same-origin IndexedDB. This reduces casual local inspection risk but is not equivalent to OS credential storage and does not protect against malware, XSS, same-origin compromise, browser profile compromise, or a compromised OS user.

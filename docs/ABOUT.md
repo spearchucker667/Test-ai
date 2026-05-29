@@ -2,15 +2,15 @@
 
 ## What Is Venice Forge?
 
-Venice Forge is a **private AI creation studio** built as a Windows-first Electron desktop application. It provides a unified interface for the [Venice API](https://venice.ai), covering text generation, image generation, web research, batch automation, and local data management — all without routing user content through any intermediary server beyond Venice itself.
+Venice Forge is a **private AI creation studio** built as a dual-platform Windows and macOS Electron desktop application. It provides a unified interface for the [Venice API](https://venice.ai), covering text generation, image generation, web research, batch automation, and local data management — all without routing user content through any intermediary server beyond Venice itself.
 
-The project ships as both a packaged Electron desktop app (Windows `.exe`) and a Vite/Express web application for local development.
+The project ships as a packaged Electron desktop app for Windows and macOS, plus a Vite/Express web application for local development.
 
 Current public readiness status:
 
 - Source is MIT licensed and suitable for public repository browsing.
-- CI runs typecheck, tests, and build on Node 20 and 22.
-- Windows release automation builds NSIS and portable `.exe` artifacts.
+- CI runs lint, typecheck, tests, and build on Node 20 and 22.
+- Release automation builds Windows NSIS/portable `.exe` artifacts and macOS DMG/ZIP artifacts.
 - Root support, security, contribution, code of conduct, issue template, PR template, and Dependabot metadata are present.
 - Legal/TOS notes are maintained in [LEGAL.md](LEGAL.md).
 
@@ -54,8 +54,8 @@ Web mode (development only):
 | Secure storage | Electron `safeStorage` | API key (encrypted) |
 | IPC bridge | Electron preload + `ipcMain` | Renderer ↔ main transport |
 | Web proxy | Express + http-proxy-middleware | Dev/web mode proxy |
-| Packaging | electron-builder | NSIS installer + portable exe |
-| Automation | GitHub Actions + Dependabot | CI, Windows release, dependency updates |
+| Packaging | electron-builder | Windows NSIS/portable, macOS DMG/ZIP |
+| Automation | GitHub Actions + Dependabot | CI, Windows/macOS release, dependency updates |
 
 ### Application Tabs
 
@@ -63,7 +63,7 @@ Web mode (development only):
 |-----|---------|
 | Prompt | Streaming chat with Venice text models |
 | Create | Image generation with upscaling and gallery save |
-| Batch | Parallel prompt runs over multiple inputs |
+| Batch | Sequential prompt runs over multiple inputs |
 | Research | Web search, page scrape, and document parse via Venice augment endpoints |
 | Catalog | Live model browser (type, traits, capability) |
 | Library | Local image gallery with bulk download and upscale |
@@ -97,10 +97,10 @@ User input
 
 ## Non-Goals
 
-- Venice Forge does not currently support auto-update.
-- Venice Forge does not encrypt IndexedDB contents at rest (images, chat history).
+- Venice Forge auto-update support depends on GitHub Releases availability and packaging configuration.
+- IndexedDB records are encrypted with a browser-managed AES-GCM key stored in same-origin IndexedDB; this is not equivalent to OS credential storage.
 - Venice Forge is not a multi-user or server-deployed application; it is a single-user desktop tool.
-- Venice Forge does not support Linux or macOS native packaging in the current release.
+- Venice Forge does not support Linux native packaging in the current release.
 - Venice Forge is not an official Venice.ai product and does not replace Venice's legal terms, privacy notices, or API documentation.
 
 ## Further Reading

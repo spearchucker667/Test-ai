@@ -17,8 +17,11 @@ import { ToastHost } from "./components/ToastHost";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Chip } from "./components/Chip";
 import { TabButton } from "./components/TabButton";
-import { DiagPreview } from "./components/DiagnosticsPreview";
 import { initDesktopBridge, isElectron, desktopApiKey } from "./services/desktopBridge";
+import { GalleryImage } from "./types/storage";
+
+type ChatHistoryRecord = { id: string; timestamp: number };
+type SettingsRecord = { id: string; timestamp: number; value?: Record<string, unknown> };
 
 export default function App() {
   const [state, dispatch] = useReducer(appReducer, initialState);
@@ -45,13 +48,33 @@ export default function App() {
   // Initialise the desktop bridge (no-op in web mode)
   useEffect(() => {
     let mounted = true;
-    initDesktopBridge().then(() => {
-      if (!mounted) return;
-      setBridgeReady(true);
-      if (isElectron()) {
-        desktopApiKey.isConfigured().then(setApiKeyConfigured).catch(() => setApiKeyConfigured(false));
+    (async () => {
+      try {
+        await initDesktopBridge();
+        if (!mounted) return;
+        if (isElectron()) {
+          const configured = await desktopApiKey.isConfigured().catch(() => false);
+          if (mounted) setApiKeyConfigured(configured);
+        }
+      } catch (err) {
+        console.warn("Desktop bridge init failed", err);
+        if (!mounted) return;
+        if (isElectron()) setApiKeyConfigured(false);
+        dispatch({
+          type: "ADD_TOAST",
+          toast: {
+            id: crypto.randomUUID(),
+            message: "Desktop bridge diagnostics failed. Continuing with degraded startup checks.",
+            type: "warn",
+            duration: 7000,
+          },
+        });
+      } finally {
+        if (mounted) {
+          setBridgeReady(true);
+        }
       }
-    });
+    })();
     return () => { mounted = false; };
   }, []);
 
@@ -60,17 +83,36 @@ export default function App() {
     (async () => {
       try {
         await StorageService.openDB();
-        const [images, chats, settingsItems] = await Promise.all([
-          StorageService.getItems("images"),
-          StorageService.getItems("chats"),
-          StorageService.getItems("settings"),
+        const [imagesResult, chatsResult, settingsResult] = await Promise.all([
+          StorageService.getItemsWithMeta("images"),
+          StorageService.getItemsWithMeta("chats"),
+          StorageService.getItemsWithMeta("settings"),
         ]);
+        const images = imagesResult.items as GalleryImage[];
+        const chats = chatsResult.items as ChatHistoryRecord[];
+        const settingsItems = settingsResult.items as SettingsRecord[];
+        const totalDecryptFailures =
+          imagesResult.decryptFailures + chatsResult.decryptFailures + settingsResult.decryptFailures;
         if (!mounted) return;
         dispatch({ type: "SET_GALLERY", items: images });
         dispatch({ type: "SET_CHATS", items: chats });
         const latestSettings = settingsItems.find(i => i.id === "app-settings")?.value;
         if (latestSettings)
           dispatch({ type: "SET_SETTINGS", settings: latestSettings });
+
+        if (totalDecryptFailures > 0) {
+          dispatch({
+            type: "ADD_TOAST",
+            toast: {
+              id: crypto.randomUUID(),
+              message:
+                `${totalDecryptFailures} local record(s) could not be decrypted and were skipped. ` +
+                "This can happen after key-store or profile changes.",
+              type: "warn",
+              duration: 9000,
+            },
+          });
+        }
         
         if (!isElectron()) {
           // Web mode uses the server-side .env key; no local key check needed.
@@ -131,9 +173,6 @@ export default function App() {
       });
     });
   }, [dbReady, settingsHydrated, state.settings]);
-
-  const activeLabel =
-    TABS.find(([id]) => id === state.activeTab)?.[1] || "Chat";
 
   return (
     <div className="flex h-screen flex-col bg-transparent">

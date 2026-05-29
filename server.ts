@@ -53,15 +53,17 @@ export function createServerApp() {
   const app = express();
   app.disable("x-powered-by");
 
-  // Structured request logging (no bodies, no secrets)
-  app.use((req, res, next) => {
-    const start = Date.now();
-    res.on("finish", () => {
-      const duration = Date.now() - start;
-      console.log(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+  // Structured request logging (no bodies, no secrets) in development/test only.
+  if (AppConfig.NODE_ENV !== "production") {
+    app.use((req, res, next) => {
+      const start = Date.now();
+      res.on("finish", () => {
+        const duration = Date.now() - start;
+        console.warn(`${req.method} ${req.path} ${res.statusCode} ${duration}ms`);
+      });
+      next();
     });
-    next();
-  });
+  }
 
   // Health check endpoint (does not proxy to Venice)
   app.get("/health", (_req, res) => {
@@ -89,7 +91,7 @@ export function createServerApp() {
         "default-src 'self'",
         "script-src 'self'",
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob:",
+        "img-src 'self' data: blob: https:",
         connectSrc,
         "font-src 'self' data:",
         "media-src 'self' blob:",
@@ -247,7 +249,7 @@ export async function startServer() {
   if (AppConfig.NODE_ENV !== "test") {
     const host = process.env.HOST || "127.0.0.1";
     app.listen(Number(PORT), host, () => {
-      console.log(`Server running on http://${host}:${PORT}`);
+      console.warn(`Server running on http://${host}:${PORT}`);
     });
   }
 }

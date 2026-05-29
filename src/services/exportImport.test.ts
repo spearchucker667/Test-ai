@@ -65,4 +65,35 @@ describe("export/import schema validation", () => {
       )
     ).toThrow(/unexpected/i);
   });
+
+  it("skips malformed record fields and non-finite timestamps", () => {
+    const json = JSON.stringify({
+      version: EXPORT_SCHEMA_VERSION,
+      exportedAt: new Date().toISOString(),
+      appVersion: "1.0.0",
+      data: {
+        images: [
+          { id: "img-valid", prompt: "p", image: "img", timestamp: 1 },
+          { id: "img-nan", prompt: "p", image: "img", timestamp: NaN },
+          { id: "img-bad", image: 123, timestamp: 2 },
+        ],
+        chats: [
+          { id: "chat-valid", prompt: "p", response: "r", timestamp: 1 },
+          { id: "chat-long", prompt: "x".repeat(100_001), response: "r", timestamp: 2 },
+        ],
+        settings: [{ id: "app-settings", value: { theme: "dark" }, timestamp: 3 }],
+      },
+    });
+
+    const result = validateImportJson(json);
+    expect(result.summary).toEqual({
+      imagesFound: 2,
+      chatsFound: 1,
+      settingsFound: 1,
+      skippedRecords: 2,
+    });
+    const repaired = result.payload.data.images.find((img) => img.id === "img-nan");
+    expect(typeof repaired?.timestamp).toBe("number");
+    expect(Number.isFinite(repaired?.timestamp)).toBe(true);
+  });
 });

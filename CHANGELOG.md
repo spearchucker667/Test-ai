@@ -2,24 +2,6 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
-
-### Added
-- Dual-platform macOS + Windows packaging support.
-- Generated macOS `.icns` application icon.
-- Cross-platform checksum sidecar generation (`.sha256`) for distribution artifacts.
-- Cross-platform local testing and release verification scripts.
-- macOS release workflow (`macos-release.yml`) for `arm64` and `x64` builds.
-
-### Changed
-- Refactored `verify-dist` to support both Windows and macOS file validations.
-- `secureStore.ts` strictly enforces macOS Keychain encryption exactly like Windows DPAPI.
-
-### Security
-- Explicitly disabled plaintext API-key fallback on macOS.
-
----
-
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice Forge uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
@@ -27,6 +9,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ## [Unreleased]
 
 ### Added
+- Added dual-platform macOS + Windows packaging support.
+- Added generated macOS `.icns` application icon.
+- Added cross-platform checksum sidecar generation (`.sha256`) for distribution artifacts.
+- Added cross-platform local testing and release verification scripts.
+- Added macOS release workflow (`macos-release.yml`) for `arm64` and `x64` builds.
 - Added ESLint configuration (`eslint.config.mjs`) with TypeScript-ESLint and React Hooks rules.
 - Added Vitest coverage reporting via `@vitest/coverage-v8` and `npm run test:coverage`.
 - Added GitHub CodeQL security analysis workflow (`.github/workflows/codeql.yml`).
@@ -38,6 +25,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - Added `docs/Venice_swagger_api.yaml` and `docs/venice_llm_info.md` as the canonical API reference used for alignment work.
 
 ### Changed
+- Refactored `verify-dist` to support both Windows and macOS file validations.
+- `secureStore.ts` strictly enforces macOS Keychain encryption exactly like Windows DPAPI.
 - Updated all supporting documentation to match the current app status and public release process.
 - CI workflow now uses `npm ci --prefer-offline` for slightly faster installs and reproducibility.
 - Windows release workflow now generates and uploads SHA-256 checksum sidecar files for `.exe` artifacts.
@@ -56,6 +45,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - **BUG-008:** Desktop `/augment/text-parser` uploads were unstable because `veniceFetchDesktop` serialized `FormData` but still sent the raw body over IPC. The request now correctly sends the serialized multipart payload, restoring reliable file-upload request construction.
 
 ### Security
+- Explicitly disabled plaintext API-key fallback on macOS.
 - Documented web proxy forbidden-header stripping and proxy-root rejection.
 - Added Venice.ai TOS, privacy, and API documentation coverage for public releases.
 
@@ -75,7 +65,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ### Changed
 - `upscaleGalleryImage` now accepts a `model` parameter (default `"upscale-model"`); `GalleryModule` passes `state.selectedImageModel` so the currently selected model is used.
-- `app.set("trust proxy", 1)` added to Express; removed deprecated `req.connection.remoteAddress` fallback so rate limiting uses the correct client IP behind a reverse proxy.
+- Express `trust proxy` is configurable through `TRUST_PROXY`; removed deprecated `req.connection.remoteAddress` fallback so rate limiting uses the correct client IP behind a configured reverse proxy.
 - Excluded `vite.config.ts` and test files from `tsconfig.json`; `npm run typecheck` now exits with zero errors.
 
 ### Added
@@ -92,7 +82,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 - **Prompt tab:** Streaming chat completions with system-prompt control, model selection, stop/abort, and conversation history stored in IndexedDB.
 - **Create tab:** Single and batch image generation with configurable dimensions, steps, guidance scale, negative prompt, seed, and watermark control. One-click upscaling via Venice upscale endpoint. Images saved to local gallery.
 - **Batch tab:** Run one prompt across multiple inputs, or run many prompts in sequence, with live progress, abort, and per-result download.
-- **Research tab:** Venice-augmented web search (Brave, Google, DuckDuckGo providers), page scraping, and document text extraction via Venice augment endpoints.
+- **Research tab:** Venice-augmented web search (Brave and Google providers), page scraping, and document text extraction via Venice augment endpoints.
 - **Catalog tab:** Live Venice model browser showing model ID, type, traits, and capabilities; falls back to built-in model list on network error.
 - **Library tab:** Local image gallery with individual download, upscale, delete, and bulk-download (up to 50 images at a time).
 - **Config tab:** API key save/test/delete (desktop), theme selection, image/chat model defaults, JSON data import/export with schema validation and ID-merge (not overwrite).
