@@ -477,7 +477,7 @@
   - **Fix:** Write a proper description.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-036] `SettingsModuleProps` uses `state: any, dispatch: any`** `src/modules/SettingsModule.tsx:13`
+- [x] **[BUG-036] `SettingsModuleProps` uses `state: any, dispatch: any`** `src/modules/SettingsModule.tsx:13`
   - **Type:** Type Safety
   - **What:** The module props are untyped, losing all downstream intellisense and guard safety.
   - **Fix:** Import `AppState` and `AppDispatch` types.
@@ -507,7 +507,7 @@
   - **Fix:** Add a diagnostic toast or log when coercion happens.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-041] `package.json` missing `verify:dist:portable` script** `package.json`
+- [x] **[BUG-041] `package.json` missing `verify:dist:portable` script** `package.json`
   - **Type:** Config
   - **What:** There is `dist:portable` to build a Windows portable exe, but no corresponding `verify:dist:portable` script.
   - **Fix:** Add `verify:dist:portable` to `scripts/verify-dist-win.cjs` or create a dedicated script.
@@ -561,7 +561,7 @@
   - **Fix:** Update header comment to reflect dual-platform support.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[DOC-005] `CHANGELOG.md` has no versioned release sections** `CHANGELOG.md`
+- [x] **[DOC-005] `CHANGELOG.md` has no versioned release sections** `CHANGELOG.md`
   - **What:** The file only contains `[Unreleased]`. With `package.json` at `1.0.1` and release artifacts in `release/`, there should be dated `## [1.0.1]` and `## [1.0.0]` sections.
   - **Fix:** Add versioned sections with release dates.
   - **Confidence:** [VERIFIED]
@@ -622,7 +622,7 @@
   - **Fix:** Run the checklist against the current repo state and fix discrepancies.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[GAP-004] No `verify:dist:portable` script documented or implemented** `package.json` & `docs/RELEASE.md`
+- [x] **[GAP-004] No `verify:dist:portable` script documented or implemented** `package.json` & `docs/RELEASE.md`
   - **What:** `dist:portable` exists but there is no verification script or docs for it.
   - **Fix:** Add script and document expected portable artifact.
   - **Confidence:** [VERIFIED]
