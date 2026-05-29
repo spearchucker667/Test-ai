@@ -46,8 +46,8 @@ Venice's own privacy material describes multiple privacy modes with different pr
 
 Before a public release:
 
-- Confirm README, [SECURITY.md](SECURITY.md), [RELEASE.md](RELEASE.md), and this document match the shipped version.
+- Confirm README, [SECURITY.md](../SECURITY.md), [RELEASE.md](RELEASE/release.md), and this document match the shipped version.
 - Confirm no API keys, tokens, certificates, or generated `.env` files are committed.
-- Run the full release verification in [RELEASE.md](RELEASE.md).
+- Run the full release verification in [RELEASE.md](RELEASE/release.md).
 - State whether Windows artifacts are signed or unsigned in release notes.
 - Include SHA-256 checksums for all `.exe` artifacts.

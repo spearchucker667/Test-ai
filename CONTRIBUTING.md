@@ -10,7 +10,7 @@ Please read and follow our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 - Keep pull requests focused and reviewable.
 - Do not commit secrets, `.env` files, generated release artifacts, or local logs.
-- Keep README, [docs/ABOUT.md](docs/ABOUT.md), [docs/SECURITY.md](docs/SECURITY.md), [docs/RELEASE.md](docs/RELEASE.md), and [docs/LEGAL.md](docs/LEGAL.md) current when behavior, packaging, or legal assumptions change.
+- Keep README, [docs/ABOUT.md](docs/ABOUT.md), [SECURITY.md](SECURITY.md), [docs/RELEASE/release.md](docs/RELEASE/release.md), and [docs/LEGAL.md](docs/LEGAL.md) current when behavior, packaging, or legal assumptions change.
 - Treat all Venice API keys as secrets. Never expose them to renderer code, frontend bundles, issue screenshots, or test fixtures.
 
 ## Getting Started
@@ -96,7 +96,7 @@ If you discover a security vulnerability, **do not open a public issue**. Instea
 2. Request a private maintainer discussion before sharing exploit details.
 3. Never post API keys, bearer tokens, `.env` contents, certificates, or private logs.
 
-See [docs/SECURITY.md](docs/SECURITY.md) for the full security model.
+See [SECURITY.md](SECURITY.md) for the full security model.
 
 ## Pull Request Checklist
 

@@ -7,7 +7,7 @@ Use this routing guide for public support and maintenance requests.
 - Bugs: open a GitHub issue using the bug report template.
 - Feature requests: open a GitHub issue using the feature request template.
 - Security reports: follow [SECURITY.md](SECURITY.md).
-- Release and packaging questions: check [docs/RELEASE.md](docs/RELEASE.md).
+- Release and packaging questions: check [docs/RELEASE/release.md](docs/RELEASE/release.md).
 - Architecture questions: check [docs/ABOUT.md](docs/ABOUT.md) and [docs/REPOSITORY_TREE.md](docs/REPOSITORY_TREE.md).
 - General questions: check [docs/FAQ.md](docs/FAQ.md).
 

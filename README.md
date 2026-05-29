@@ -28,16 +28,46 @@ See [docs/ABOUT.md](docs/ABOUT.md) for project background and architecture overv
 | Config | Settings | API key management, theme, model defaults, data import/export |
 | Status | Diagnostics | Transport mode, runtime info, rate-limit headers, and log access |
 
-## Repository Map
+## Documentation
 
-The full public file tree and ownership map live in [docs/REPOSITORY_TREE.md](docs/REPOSITORY_TREE.md).
+All documentation is organized in the [docs](docs/) directory and root level. See the index below:
+
+### Getting Started
+- **[README.md](README.md)** — This file. Project overview, features, and quick-start.
+- **[docs/ABOUT.md](docs/ABOUT.md)** — Architecture, dual-transport design, security model.
+
+### Development
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — Contributor guidelines and code of conduct.
+- **[docs/DEVELOPMENT/building.md](docs/DEVELOPMENT/building.md)** — Build system, Vite, Electron, esbuild.
+- **[docs/DEVELOPMENT/platform-support.md](docs/DEVELOPMENT/platform-support.md)** — Windows/macOS/Linux requirements and support matrix.
+- **[docs/DEVELOPMENT/troubleshooting.md](docs/DEVELOPMENT/troubleshooting.md)** — Common development issues and solutions.
+- **[docs/DEVELOPMENT/macos.md](docs/DEVELOPMENT/macos.md)** — macOS-specific build and deployment notes.
+
+### Release & Deployment
+- **[docs/RELEASE/release.md](docs/RELEASE/release.md)** — Release process, versioning, and automation.
+- **[docs/RELEASE/signing-and-notarization.md](docs/RELEASE/signing-and-notarization.md)** — Windows/macOS code signing and notarization.
+- **[CHANGELOG.md](CHANGELOG.md)** — Version history, breaking changes, and bug fixes.
+
+### Governance & Legal
+- **[SECURITY.md](SECURITY.md)** — Security policy, vulnerability disclosure, and supported versions.
+- **[docs/LEGAL.md](docs/LEGAL.md)** — Legal notices, disclaimers, and terms.
+- **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — Community standards and reporting procedures.
+- **[PRIVACY.md](PRIVACY.md)** — Privacy policy and data handling.
+- **[SUPPORT.md](SUPPORT.md)** — Support channels and escalation.
+
+### Reference
+- **[docs/FAQ.md](docs/FAQ.md)** — Frequently asked questions.
+- **[docs/REPOSITORY_TREE.md](docs/REPOSITORY_TREE.md)** — Full file tree and module ownership.
+- **[docs/AGENTS/](docs/AGENTS/)** — AI agent setup guides (Copilot, Gemini).
+
+### Repository Map
 
 ```text
 .
 ├── electron/              # Electron main, preload, IPC validation, secure storage
 ├── src/                   # React renderer, modules, services, state, types, utilities
 ├── scripts/               # Build and release verification helpers
-├── docs/                  # Architecture, release, security, legal, repo tree
+├── docs/                  # Organized documentation (see index above)
 ├── .github/               # CI, release automation, ownership, issue/PR templates
 ├── server.ts              # Express web proxy for development web mode
 └── package.json           # Commands, dependencies, version metadata
@@ -146,7 +176,7 @@ Desktop Venice API calls go through a narrow preload API and main-process IPC tr
 
 Production CSP does not allow localhost networking. Navigation is blocked except for the app files; trusted external HTTPS links open in the OS browser. Packaged production DevTools are disabled unless `VENICE_FORGE_DEBUG_DEVTOOLS=true`. Web proxy mode adds `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, and `Content-Security-Policy` headers to all responses.
 
-Read our full [Privacy & Security Model](PRIVACY.md) and the technical [docs/SECURITY.md](docs/SECURITY.md) for more details.
+Read our full [Privacy & Security Model](PRIVACY.md) and the technical [SECURITY.md](SECURITY.md) for more details.
 
 ## Legal and Terms
 
@@ -160,7 +190,7 @@ See [docs/LEGAL.md](docs/LEGAL.md) for the public-readiness legal notes, tradema
 |---------|-----|
 | Missing icon | `npm run generate:icon` then `npm run verify:icon` |
 | Packaging failure | `npm run clean && npm install && npm run dist:win` |
-| SmartScreen warning | Expected for unsigned local builds; see [docs/RELEASE.md](docs/RELEASE.md) for signing |
+| SmartScreen warning | Expected for unsigned local builds; see [docs/RELEASE/release.md](docs/RELEASE/release.md) for signing |
 | No API key prompt at launch | Open **Config**, save a key, then test connection |
 | `400` on chat/image | Usually a request schema mismatch — ensure the model ID is valid and all API parameters are correct strings |
 | `401` / `403` | Invalid key or insufficient key scope |
@@ -177,8 +207,8 @@ See [docs/LEGAL.md](docs/LEGAL.md) for the public-readiness legal notes, tradema
 ## Further Reading
 
 - [docs/ABOUT.md](docs/ABOUT.md) — Project background and architecture
-- [docs/SECURITY.md](docs/SECURITY.md) — Full security model
-- [docs/RELEASE.md](docs/RELEASE.md) — Release checklist
+- [SECURITY.md](SECURITY.md) — Full security model
+- [docs/RELEASE/release.md](docs/RELEASE/release.md) — Release checklist
 - [docs/LEGAL.md](docs/LEGAL.md) — Legal, TOS, and public release notes
 - [docs/REPOSITORY_TREE.md](docs/REPOSITORY_TREE.md) — Repository structure and ownership map
 - [SUPPORT.md](SUPPORT.md) — Support and issue routing

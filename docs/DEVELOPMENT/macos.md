@@ -50,4 +50,4 @@ xattr -dr com.apple.quarantine "/Applications/Venice Forge.app"
 - **Application Logs**: `~/Library/Application Support/Venice Forge/logs/venice-forge.log`
 - **Images, Chats, Settings**: Renderer IndexedDB
 
-For automated notarization and signing instructions for public releases, refer to [SIGNING_AND_NOTARIZATION.md](SIGNING_AND_NOTARIZATION.md).
+For automated notarization and signing instructions for public releases, refer to [SIGNING_AND_NOTARIZATION.md](../RELEASE/signing-and-notarization.md).

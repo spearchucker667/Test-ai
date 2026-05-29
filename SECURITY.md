@@ -1,6 +1,6 @@
 # Security Policy
 
-The full Venice Forge security model is maintained in [docs/SECURITY.md](docs/SECURITY.md).
+The full Venice Forge security model is maintained in [SECURITY.md](SECURITY.md).
 
 ## Reporting a Vulnerability
 

@@ -23,18 +23,23 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   ├── icon.ico                   # Windows application icon bundle
 │   └── icon-placeholder.md
 ├── docs/
+│   ├── AGENTS/
+│   │   ├── agents.md
+│   │   ├── agent-reinitialization.md
+│   │   └── gemini.md
+│   ├── DEVELOPMENT/
+│   │   ├── building.md
+│   │   ├── macos.md
+│   │   ├── platform-support.md
+│   │   └── troubleshooting.md
+│   ├── RELEASE/
+│   │   ├── release.md
+│   │   └── signing-and-notarization.md
 │   ├── ABOUT.md
-│   ├── BUILDING.md
 │   ├── FAQ.md
 │   ├── HQE_AUDIT_REPORT.md
 │   ├── LEGAL.md
-│   ├── MACOS.md
-│   ├── PLATFORM_SUPPORT.md
-│   ├── RELEASE.md
 │   ├── REPOSITORY_TREE.md
-│   ├── SECURITY.md
-│   ├── SIGNING_AND_NOTARIZATION.md
-│   ├── TROUBLESHOOTING.md
 │   ├── Venice_swagger_api.yaml
 │   └── venice_llm_info.md
 ├── electron/
@@ -63,7 +68,6 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   ├── index.css
 │   └── main.tsx
 ├── .env.example
-├── AGENTS.md
 ├── CHANGELOG.md
 ├── CODE_OF_CONDUCT.md
 ├── CONTRIBUTING.md

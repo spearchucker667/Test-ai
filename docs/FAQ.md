@@ -14,7 +14,7 @@ No. Venice Forge is an independent MIT-licensed project. It is not endorsed by, 
 - **Linux** — Not officially packaged; development use only with plaintext key fallback
 - **Web browser** — Supported in development mode only
 
-See [PLATFORM_SUPPORT.md](PLATFORM_SUPPORT.md) for the full matrix.
+See [PLATFORM_SUPPORT.md](DEVELOPMENT/platform-support.md) for the full matrix.
 
 ---
 
@@ -164,11 +164,11 @@ Open a GitHub issue using the bug report template. Include:
 
 - [README.md](../README.md) — Setup and usage
 - [ABOUT.md](ABOUT.md) — Architecture and goals
-- [BUILDING.md](BUILDING.md) — Development and packaging commands
-- [RELEASE.md](RELEASE.md) — Release checklist
-- [SECURITY.md](SECURITY.md) — Full security model
+- [BUILDING.md](DEVELOPMENT/building.md) — Development and packaging commands
+- [RELEASE.md](RELEASE/release.md) — Release checklist
+- [SECURITY.md](../SECURITY.md) — Full security model
 - [LEGAL.md](LEGAL.md) — Legal and TOS coverage
-- [PLATFORM_SUPPORT.md](PLATFORM_SUPPORT.md) — Supported platforms
-- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) — Common issues and fixes
+- [PLATFORM_SUPPORT.md](DEVELOPMENT/platform-support.md) — Supported platforms
+- [TROUBLESHOOTING.md](DEVELOPMENT/troubleshooting.md) — Common issues and fixes
 - [CHANGELOG.md](../CHANGELOG.md) — Version history
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — How to contribute
