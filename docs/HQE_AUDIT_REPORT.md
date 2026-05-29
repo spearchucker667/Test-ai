@@ -2,7 +2,7 @@
 
 **Current Status: Historical audit retained for traceability**
 
-This report records an earlier high-quality engineering scan. The critical web-proxy items identified here have been fixed and covered by regression tests. The current public readiness backlog is maintained in [TODO.md](../TODO.md), and the current repo structure is maintained in [REPOSITORY_TREE.md](REPOSITORY_TREE.md).
+This report records an earlier high-quality engineering scan. The critical web-proxy items identified here have been fixed and covered by regression tests. The current public readiness backlog is maintained in [todo.md](../todo.md), and the current repo structure is maintained in [REPOSITORY_TREE.md](REPOSITORY_TREE.md).
 
 **Current Health Direction: Public-ready with follow-ups**
 

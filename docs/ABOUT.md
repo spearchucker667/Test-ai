@@ -58,6 +58,7 @@ Web mode (development only):
 | Packaging | electron-builder | Windows NSIS/portable, macOS DMG/ZIP |
 | Automation | GitHub Actions + Dependabot | CI, Windows/macOS release, dependency updates |
 | QA | Vitest + ESLint (`--max-warnings=96`) | Unit tests, integration tests, static analysis |
+| Theme | Token-based CSS variables + Tailwind v4 `@theme` | Built-in and custom themes with WCAG AA contrast checking |
 
 ### Application Tabs
 

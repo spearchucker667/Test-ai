@@ -47,6 +47,7 @@ This is the token-lean entrypoint. Read [`AGENT_REINITIALIZATION.md`](./AGENT_RE
 - Release targets are Windows + macOS.
 - ESLint gate exists locally (`npm run lint:eslint`) with `--max-warnings=96`.
 - GitHub `ci.yml` runs lint:eslint, typecheck, test, and build.
+- Theme system is token-based via CSS variables + Tailwind v4 `@theme`. Built-in themes live in `src/theme/themes.ts`; custom themes are user-created in the ThemeMaker UI.
 
 ## Coding Expectations
 

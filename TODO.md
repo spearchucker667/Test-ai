@@ -1,777 +1,261 @@
-# Bug Hunt — TODO
+# Venice Forge — Master Task Tracker
 
-> Generated: 2026-05-28 (updated pass 2) • Scope: code + docs • Files scanned: ~130 / ~149 tracked
+> Generated: 2026-05-29 (comprehensive pass)  
+> Scope: code + docs + theme system  
+> Status: All Critical/High/Medium/Low bugs from Pass 1 & 2 resolved. Theme system implemented.
+
+---
 
 ## Summary
 
-| Severity | Count |
-|----------|-------|
-| Critical | 2 |
-| High | 14 |
-| Medium | 22 |
-| Low / Cosmetic | 15 (+8 grouped) |
-| Doc Defect | 12 |
-| Missing Doc | 4 |
+| Category | Count | Status |
+|----------|-------|--------|
+| Critical bugs | 2 | **Resolved** |
+| High bugs | 14 | **Resolved** |
+| Medium bugs | 22 | **Resolved** |
+| Low / Cosmetic | 15 (+8 grouped) | **Resolved** |
+| Doc Defects | 12 | **Resolved** |
+| Missing Docs | 4 | **Resolved** |
+| Theme system (new) | 1 major feature | **Implemented** |
 
 ---
 
-## Critical
+## Completed — Bug Hunt Pass 1 & 2
 
-- [x] **[BUG-001] `cryptoService` key-generation race condition can overwrite encryption key and permanently lock user data** `src/services/cryptoService.ts:11`
-  - **Type:** Concurrency / Data Loss
-  - **What:** `getOrCreateKey()` reads the key DB, then (if missing) generates a new key and writes it. Two concurrent calls create a classic TOCTOU race: both read `existing === null`, both generate different keys, and the second `put` overwrites the first. Any data encrypted with the first key becomes permanently undecryptable.
-  - **Evidence:**
-    ```ts
-    async function getOrCreateKey(): Promise<CryptoKey> {
-      const db = await openKeyDB();
-      const existing = await new Promise<any>((resolve, reject) => {
-        const tx = db.transaction("keys", "readonly");
-        const req = tx.objectStore("keys").get(KEY_NAME);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-      });
-      if (existing) return existing.key;
-      const key = await crypto.subtle.generateKey(...);
-      return new Promise<CryptoKey>((resolve, reject) => {
-        const tx = db.transaction("keys", "readwrite");
-        const putReq = tx.objectStore("keys").put({ id: KEY_NAME, key });
-        putReq.onsuccess = () => resolve(key);
-        putReq.onerror = () => reject(putReq.error);
-      });
-    }
-    ```
-  - **Fix:** Use a single readwrite transaction for the check-and-set, or wrap the entire function in a promise mutex / `navigator.locks.request`.
-  - **Confidence:** [VERIFIED]
+All items below were verified and fixed. See `CHANGELOG.md` for detailed descriptions.
 
-- [x] **[BUG-002] Release workflows declare `contents: read` but `action-gh-release` needs `contents: write`** `.github/workflows/windows-release.yml:9` & `.github/workflows/macos-release.yml:9`
-  - **Type:** CI / Security / Operational
-  - **What:** Both release workflows set `permissions: contents: read` at the workflow level. The `softprops/action-gh-release@v2` step that publishes to GitHub Releases requires `contents: write` to create releases and upload assets. Unless the repository overrides this at the org level, public tag releases will fail at the publish step.
-  - **Evidence:**
-    ```yml
-    permissions:
-      contents: read
-    ```
-    ```yml
-    - name: Publish to GitHub Releases
-      if: startsWith(github.ref, 'refs/tags/v')
-      uses: softprops/action-gh-release@v2
-      with:
-        files: |
-          release/*.exe
-          release/*.sha256
-    ```
-  - **Fix:** Add `permissions: contents: write` to the publish job, or scope it to the specific step via `jobs.release.permissions`.
-  - **Confidence:** [VERIFIED]
+### Critical
+- [x] **[BUG-001]** `cryptoService` key-generation race condition (TOCTOU)
+- [x] **[BUG-002]** Release workflows `contents: read` → needs `contents: write`
 
----
+### High
+- [x] **[BUG-003]** Settings auto-save debounce (500 ms)
+- [x] **[BUG-004]** IndexedDB init failure no longer marks `dbReady=true`
+- [x] **[BUG-005]** `SET_*_DRAFT` reducers guarded against null/undefined patch
+- [x] **[BUG-006]** `dedupeKey` handles circular references
+- [x] **[BUG-007]** Import writes parallelised via `Promise.all`
+- [x] **[BUG-008]** Rate-limit Map capped at 10,000 entries (FIFO eviction)
+- [x] **[BUG-009]** Circuit-breaker state moved inside `createServerApp()`
+- [x] **[BUG-010]** 17× `console.*` calls replaced with conditional shared logger
+- [x] **[BUG-011]** `AbortSignal.any`/`timeout` fallback for older runtimes
+- [x] **[BUG-012]** `hardenedRuntime: true` added to macOS config
+- [x] **[BUG-013]** `beforeunload` listener clears `inFlight` dedup map
+- [x] **[BUG-014]** Catch-all Express route typed with `Request`/`Response`
+- [x] **[BUG-044]** `BatchDraft` type synced to actual state shape (`promptsText`)
+- [x] **[BUG-045]** `keyPromise` rejection resets latch for retry
 
-## High
+### Medium
+- [x] **[BUG-015]** `as any` removed from server validation (runtime guard + type predicate)
+- [x] **[BUG-016]** IPC handler uses validated request object
+- [x] **[BUG-017]** Health endpoint reads version from `package.json`
+- [x] **[BUG-018]** `veniceFetchDesktop` method narrowed properly
+- [x] **[BUG-019]** `veniceFetch<T = unknown>` instead of `any`
+- [x] **[BUG-020]** Partially resolved — see Remainder §Partially Resolved
+- [x] **[BUG-021]** `StorageService`/`cryptoService` `any` replaced with generics/types
+- [x] **[BUG-022]** Log rotation ring buffer (`.1`, `.2`, `.3`)
+- [x] **[BUG-023]** `catch (err: any)` → `catch (err)` + runtime guards (12 files)
+- [x] **[BUG-024]** `loadJsonFile` returns `{ ok: true, canceled: false, data }`
+- [x] **[BUG-025]** `signalId` length capped at 128 chars in validator
+- [x] **[BUG-026]** `vite.config.ts` removed from `tsconfig.json` exclude
+- [x] **[BUG-027]** `scripts/**` included in ESLint coverage
+- [x] **[BUG-028]** `sleep` rejects immediately on already-aborted signal
+- [x] **[BUG-029]** `modelService` localStorage failure logged via shared logger
+- [x] **[BUG-030]** `byteLength` uses `TextEncoder` instead of `Blob`
+- [x] **[BUG-046]** IPC `endpoint.search` capped at 512 bytes
+- [x] **[BUG-047]** Web-mode export defers `URL.revokeObjectURL` by 1 s
+- [x] **[BUG-048]** Circuit breaker resets `circuitFailures` on half-open re-entry
+- [x] **[BUG-049]** Rate-limit cleanup interval stored and exposed for teardown
 
-- [x] **[BUG-003] Settings auto-save has no debounce — rapid changes race and can persist out-of-order state** `src/App.tsx:157`
-  - **Type:** Concurrency / Resource
-  - **What:** `useEffect` watches `[dbReady, settingsHydrated, state.settings]` and fires `StorageService.saveItem` on every settings mutation. There is no debounce, leading to overlapping async writes.
-  - **Why it matters:** If the user toggles multiple settings quickly, an earlier slow IndexedDB write can overwrite a later fast one, leaving persisted state inconsistent with in-memory state.
-  - **Evidence:**
-    ```tsx
-    useEffect(() => {
-      if (!dbReady || !settingsHydrated) return;
-      StorageService.saveItem("settings", {
-        id: "app-settings",
-        value: state.settings,
-        timestamp: Date.now(),
-      }).catch((err) => { ... });
-    }, [dbReady, settingsHydrated, state.settings]);
-    ```
-  - **Fix:** Add a debounce (e.g., 500 ms) or a sequential write queue so only the latest settings snapshot is persisted.
-  - **Confidence:** [VERIFIED]
+### Low / Cosmetic
+- [x] **[BUG-031]** `dev:web` made explicit alias of `dev`
+- [x] **[BUG-032]** AGENTS.md CI/ESLint claims corrected
+- [x] **[BUG-033]** Lint budget aligned (96) across docs and config
+- [x] **[BUG-034]** `electron-builder.config.cjs` header updated for dual-platform
+- [x] **[BUG-035]** `looksLikeUnixTimestamp` JSDoc fixed
+- [x] **[BUG-036]** `SettingsModuleProps` typed with `AppState`/`AppDispatch`
+- [x] **[BUG-037]** `desktopUpdates` callbacks typed with `electron-updater` types
+- [x] **[BUG-038]** Electron smoke test enhanced (stderr scanning, graceful exit check)
+- [x] **[BUG-039]** `Math.random()` boundary → `crypto.randomBytes`
+- [x] **[BUG-040]** `normalizeWebSearchSetting` warns on invalid input
+- [x] **[BUG-041]** `verify:dist:portable` script added
+- [x] **[BUG-042]** `isAllowedAppNavigation` uses `fs.realpathSync`
+- [x] **[BUG-043]** `zip.artifactName` added to align verify script with builder
+- [x] **[BUG-050]** Misleading `apiKey?` removed from `AppSettings` type
+- [x] **Payload fixes (BUG-004–008 payload)** Schema serialization, Zod error parsing, diagnostic deduplication, legacy boolean coercion, multipart upload serialization
 
-- [x] **[BUG-004] IndexedDB init failure still marks `dbReady=true`, causing later writes to a broken database** `src/App.tsx:132`
-  - **Type:** Error Handling / Logic
-  - **What:** The `finally` block in the IndexedDB bootstrap effect sets `dbReady(true)` and `settingsHydrated(true)` even when the `try` block threw. The settings auto-save effect then fires and attempts `StorageService.saveItem` on a null/broken DB connection.
-  - **Evidence:**
-    ```tsx
-    } catch (err) {
-      console.warn("IndexedDB init failed", err);
-      dispatch({ type: "ADD_TOAST", toast: { ... } });
-    } finally {
-      if (mounted) {
-        setDbReady(true);
-        setSettingsHydrated(true);
-      }
-    }
-    ```
-  - **Fix:** Only set `dbReady`/`settingsHydrated` in the `try` block on success; set error flags in `catch` that gate downstream effects.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-005] `SET_CHAT_DRAFT`, `SET_IMAGE_DRAFT`, `SET_BATCH_DRAFT` reducers crash on null/undefined `patch`** `src/state/appReducer.ts:285`
-  - **Type:** Null Safety / Crash
-  - **What:** `Object.assign(draft.chatDraft, action.patch)` throws a `TypeError` if `action.patch` is `null` or `undefined`. There is no guard.
-  - **Evidence:**
-    ```ts
-    case "SET_CHAT_DRAFT":
-      Object.assign(draft.chatDraft, action.patch);
-      break;
-    ```
-  - **Fix:** Add `if (action.patch && typeof action.patch === "object")` guard before `Object.assign`.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-006] `dedupeKey` can throw unhandled `TypeError` on circular request bodies** `src/services/veniceClient.ts:28`
-  - **Type:** Error Handling / Crash
-  - **What:** `JSON.stringify(body)` inside `dedupeKey` throws when `body` contains circular references. Because `dedupeKey` is called before the try/catch in `veniceFetch`, the exception propagates uncaught to the caller.
-  - **Evidence:**
-    ```ts
-    function dedupeKey(endpoint: string, method: string, body: unknown): string {
-      const bodyHash = body === undefined ? "" : JSON.stringify(body);
-      return `${method} ${endpoint} ${bodyHash}`;
-    }
-    ```
-  - **Fix:** Wrap `JSON.stringify` in a try/catch and fall back to a hash of `Object.keys` or a placeholder.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-007] Import loops over stores sequentially with `await` inside `for…of` — slow, no transaction atomicity** `src/modules/SettingsModule.tsx:239`
-  - **Type:** Performance / Logic
-  - **What:** Import writes images, chats, and settings one-by-one with sequential `await` inside loops. If any single `saveItem` throws, previously saved records remain while the import is half-applied.
-  - **Evidence:**
-    ```ts
-    for (const img of payload.data.images) await StorageService.saveItem("images", img);
-    for (const chat of payload.data.chats) await StorageService.saveItem("chats", chat);
-    for (const s of payload.data.settings) await StorageService.saveItem("settings", s);
-    ```
-  - **Fix:** Wrap all writes in an IndexedDB transaction, or use `Promise.all` for each store batch. On failure, roll back or warn the user that partial data may exist.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-008] Rate-limit `reqCounts` Map grows unbounded under multi-IP traffic** `server.ts:110`
-  - **Type:** Resource / Performance
-  - **What:** The cleanup `setInterval` only prunes entries whose `resetTime` has passed. If the server receives requests from a large number of unique IPs, the Map retains an entry per IP indefinitely until each individual window expires.
-  - **Evidence:**
-    ```ts
-    const reqCounts = new Map<string, { count: number; resetTime: number }>();
-    setInterval(() => {
-      const now = Date.now();
-      for (const [ip, record] of reqCounts.entries()) {
-        if (now > record.resetTime) { reqCounts.delete(ip); }
-      }
-    }, ...);
-    ```
-  - **Fix:** Cap total Map size (e.g., LRU eviction at 10 000 entries) or tighten the cleanup interval.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-009] Circuit-breaker state is module-level and leaks across `createServerApp()` calls** `server.ts:146`
-  - **Type:** Logic / Testing
-  - **What:** `circuitFailures`, `circuitOpenUntil`, and `reqCounts` are declared at module scope. Tests or server restarts that invoke `createServerApp()` multiple times share mutable state.
-  - **Evidence:**
-    ```ts
-    let circuitFailures = 0;
-    let circuitOpenUntil = 0;
-    ```
-  - **Fix:** Move circuit/rate-limit state inside `createServerApp()` so each app instance is isolated.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-010] `console.error`, `console.warn` left in production renderer and server paths** — 17 occurrences
-  - **Type:** Code Quality / Maintainability
-  - **What:** Multiple source files contain `console.*` calls that will emit in production builds.
-  - **Locations:**
-    - `src/App.tsx:60,122,164` — 3× `console.warn`
-    - `src/services/storageService.ts:100` — `console.warn`
-    - `src/services/imageWorkflowService.ts:126` — `console.error`
-    - `src/utils/veniceValidation.ts:37,44,58,72,85,90,104,114` — 8× `console.warn`
-    - `server.ts:62,204,212,215,252` — 5× `console.warn` / `console.error`
-  - **Fix:** Replace with a conditional logger or a no-op in production. The server already gates request logging behind `NODE_ENV !== "production"`; extend that pattern.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-011] `AbortSignal.any` and `AbortSignal.timeout` may throw in older runtimes** `src/services/veniceClient.ts:504`
-  - **Type:** Compatibility / Crash
-  - **What:** The web-mode fetch path uses `AbortSignal.any([signal, AbortSignal.timeout(60000)])`. These APIs shipped in Chromium 116+ / Node 20+. If the web build is opened in an older browser the call will throw a `TypeError` and break the request.
-  - **Evidence:**
-    ```ts
-    const fetchSignal = signal
-      ? AbortSignal.any([signal, AbortSignal.timeout(60000)])
-      : AbortSignal.timeout(60000);
-    ```
-  - **Fix:** Add a feature-detect fallback: `typeof AbortSignal !== "undefined" && AbortSignal.any ? … : manual timeout via setTimeout + abortController`.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-012] macOS `electron-builder` config omits `hardenedRuntime: true`** `electron-builder.config.cjs:64`
-  - **Type:** Config / Security
-  - **What:** The `mac` block does not set `hardenedRuntime: true`. Apple notarization requires hardened runtime; without it, public releases may fail notarization or Gatekeeper checks.
-  - **Evidence:**
-    ```js
-    mac: {
-      target: [ ... ],
-      icon: "build/icon.icns",
-      category: "public.app-category.productivity",
-      // hardenedRuntime and notarization should be configured via environment ...
-    },
-    ```
-  - **Fix:** Add `hardenedRuntime: true` inside the `mac` block.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-013] `veniceFetch` deduplication map can leak promises on abrupt navigation** `src/services/veniceClient.ts:19`
-  - **Type:** Memory / Edge case
-  - **What:** `inFlight` is a module-level `Map`. Promises are removed via `.finally(() => inFlight.delete(key))`, but if the page reloads or the renderer process crashes before `finally` fires, the Map entry is orphaned for the lifetime of the JS context.
-  - **Evidence:**
-    ```ts
-    const inFlight = new Map<string, Promise<...>>();
-    promise.finally(() => inFlight.delete(key)).catch(() => {});
-    ```
-  - **Fix:** Add a periodic sweep or a TTL on entries, or clear the map on `beforeunload`.
-  - **Confidence:** [SUSPECTED → verify by stress-testing rapid deduped requests with page reloads]
-
-- [x] **[BUG-014] Catch-all Express route uses `req: any, res: any`** `server.ts:244`
-  - **Type:** Type Safety
-  - **What:** The SPA fallback handler is untyped, bypassing TypeScript checks for header manipulation, path traversal via `req.path`, or incorrect `res.sendFile` usage.
-  - **Evidence:**
-    ```ts
-    app.get("*", (req: any, res: any) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-    ```
-  - **Fix:** Replace with `req: express.Request, res: express.Response`.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-044] `BatchDraft` type definition diverges from actual state shape** `src/types/app.ts:34`
-  - **Type:** Type Safety / Logic
-  - **What:** `BatchDraft` declares `prompts: string`, `model: string`, and `systemPrompt: string`, but the actual `initialState.batchDraft` in `appReducer.ts` only stores `type` and `promptsText`. `BatchModule.tsx` works around the mismatch by casting `state.batchDraft as { type: ...; promptsText: string }` entirely. The exported type is therefore dead and misleading — any code relying on `BatchDraft.prompts` or `BatchDraft.model` would silently get `undefined` at runtime.
-  - **Why it matters:** TypeScript inference fails silently; future contributors who reference `BatchDraft` from `app.ts` will write code against fields that don't exist in state.
-  - **Evidence:**
-    ```ts
-    // src/types/app.ts:34
-    export interface BatchDraft {
-      type: "text" | "image";
-      prompts: string;        // ← field does not exist in state
-      model: string;          // ← field does not exist in state
-      systemPrompt: string;   // ← field does not exist in state
-    }
-    // appReducer.ts:150
-    batchDraft: { type: "text", promptsText: "..." }
-    // BatchModule.tsx:41 — casts away the wrong type entirely
-    const draft = (state.batchDraft || { type: "text", promptsText: "" }) as {
-      type: "text" | "image"; promptsText: string;
-    };
-    ```
-  - **Fix:** Update `BatchDraft` in `src/types/app.ts` to match the actual state shape (`{ type: "text" | "image"; promptsText: string }`) and remove the cast in `BatchModule.tsx`.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-045] `cryptoService` `keyPromise` latch permanently rejects on any key-init failure** `src/services/cryptoService.ts:8`
-  - **Type:** Error Handling / Data Loss
-  - **What:** `keyPromise` is a module-level singleton. If the IIFE inside `getOrCreateKey()` rejects (e.g., IDB blocked, key generation fails), `keyPromise` is permanently set to a rejected `Promise`. Every subsequent call to `getOrCreateKey()` returns the same rejected promise — no retry is possible without a page reload. This is distinct from BUG-001 (TOCTOU race on key creation); this is the permanent failure-latch on any initialization error.
-  - **Why it matters:** A transient IndexedDB error at startup silently bricks all encrypt/decrypt operations for the session. The user sees no persistent error and their data writes silently fail.
-  - **Evidence:**
-    ```ts
-    let keyPromise: Promise<CryptoKey> | null = null;
-    async function getOrCreateKey(): Promise<CryptoKey> {
-      if (keyPromise) return keyPromise;   // ← returns rejected promise on retry
-      keyPromise = (async () => { ... })();
-      return keyPromise;
-    }
-    ```
-  - **Fix:** Add a rejection handler that resets `keyPromise = null` so the next call retries: `keyPromise = (async () => { ... })().catch(err => { keyPromise = null; throw err; });`
-  - **Confidence:** [VERIFIED]
+### Documentation
+- [x] **[DOC-001–012]** All doc defects fixed (CI claims, lint budget, builder comments, changelog versioning, repo tree indentation, signing docs, artifact names, xattr quotes, env comments)
+- [x] **[GAP-001–004]** Missing env vars documented; verification checklist reconciled; portable script documented
 
 ---
 
-## Medium
+## Completed — Theme System Implementation
 
-- [x] **[BUG-015] `server.ts` validation uses `as any` to bypass strict tuple `includes` typing** `server.ts:161`
-  - **Type:** Type Safety
-  - **What:** `ALLOWED_VENICE_METHODS.includes(method as any)` and `ALLOWED_VENICE_ENDPOINTS.includes(req.path as any)` use `as any` instead of narrowing.
-  - **Evidence:**
-    ```ts
-    if (!ALLOWED_VENICE_METHODS.includes(method as any)) { ... }
-    const isAllowed = ALLOWED_VENICE_ENDPOINTS.includes(req.path as any);
-    ```
-  - **Fix:** Parse/narrow into the union type first, or use a runtime helper that returns the narrowed type.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-016] `validateVeniceIpcRequest` return value discarded in `venice:request` handler** `electron/ipc/handlers.ts:46`
-  - **Type:** Logic / Redundancy
-  - **What:** The handler calls `validateVeniceIpcRequest(input)` and ignores the sanitized result, then passes the raw `input` to `performVeniceRequest`. `performVeniceRequest` re-validates internally, so the request is still safe, but the first validation is pure overhead.
-  - **Evidence:**
-    ```ts
-    validateVeniceIpcRequest(input);
-    return await performVeniceRequest(input);
-    ```
-  - **Fix:** Use the validated object: `const request = validateVeniceIpcRequest(input); return await performVeniceRequest(request);`
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-017] Health check version falls back to "unknown" outside npm** `server.ts:70`
-  - **Type:** Logic / Operational
-  - **What:** `process.env.npm_package_version` is only injected by npm/yarn. When the production server bundle is started directly via `node dist/server.cjs`, the version becomes `"unknown"`.
-  - **Evidence:**
-    ```ts
-    res.status(200).json({ status: "ok", version: process.env.npm_package_version || "unknown" });
-    ```
-  - **Fix:** Read version from `package.json` at build or startup time and cache it.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-018] `veniceFetchDesktop` asserts `method as "GET" | "POST"`** `src/services/veniceClient.ts:351`
-  - **Type:** Type Safety
-  - **What:** Even though validation already happened upstream, the function casts `method` instead of narrowing it.
-  - **Evidence:**
-    ```ts
-    method: method as "GET" | "POST",
-    ```
-  - **Fix:** Change the parameter type to the union or validate before the call.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-019] Explicit `any` in `veniceFetch` generic default** `src/services/veniceClient.ts:643`
-  - **Type:** Type Safety
-  - **What:** `export async function veniceFetch<T = any>(...)` disables TypeScript inference for consumers who omit the generic.
-  - **Evidence:**
-    ```ts
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    export async function veniceFetch<T = any>( ...
-    ```
-  - **Fix:** Default to `unknown` instead of `any`, or require callers to supply the type.
-  - **Confidence:** [VERIFIED]
-
-- [~] **[BUG-020] `appReducer` and model helpers use `any` parameters and return types** — Partially resolved. `settings` cast tightened to `Record<string, unknown>` and `theme` literal widened to union type. `classifyModel`, `flattenModels`, and state initializers remain `any` due to `AppState = typeof initialState` circular dependency — requires coordinated model-type refactor.
-  - **Type:** Type Safety
-  - **What:** `classifyModel(model: any)`, `flattenModels(payload: any)`, and state initializers use `any` arrays.
-  - **Locations:**
-    - `src/state/appReducer.ts:13` — `classifyModel(model: any)`
-    - `src/state/appReducer.ts:44` — `flattenModels(payload: any)`
-    - `src/state/appReducer.ts:58` — `list.forEach((m: any) => ...)`
-    - `src/state/appReducer.ts:122` — `diagnostics: null as any`
-    - `src/state/appReducer.ts:124` — `gallery: [] as any[]`
-    - `src/state/appReducer.ts:125` — `chats: [] as any[]`
-  - **Fix:** Replace with narrow interfaces or `unknown` + guards.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-021] `StorageService` and `cryptoService` expose `any` in public APIs** — 4 occurrences
-  - **Type:** Type Safety
-  - **What:** Several public methods accept or return `any`.
-  - **Locations:**
-    - `src/services/storageService.ts:11` — `GetItemsResult<T = any>`
-    - `src/services/storageService.ts:54` — `saveItem<T extends Record<string, any>>`
-    - `src/services/cryptoService.ts:53` — `encryptData(data: any): Promise<any>`
-    - `src/services/cryptoService.ts:75` — `decryptData(encryptedPayload: any): Promise<any>`
-  - **Fix:** Prefer `unknown` for inputs and generics for outputs.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-022] Log rotation overwrites the single backup file** `electron/services/logger.ts:42`
-  - **Type:** Data Loss / Operational
-  - **What:** When the log exceeds 1 MiB, it is renamed to `.1`, overwriting any previous `.1` file. Only one backup is ever kept.
-  - **Evidence:**
-    ```ts
-    fs.renameSync(logPath, `${logPath}.1`);
-    ```
-  - **Fix:** Implement a small ring buffer (`.1`, `.2`, `.3`) or append a timestamp.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-023] `catch (err: any)` used in 8+ files — loose error typing masks safety** — 12 occurrences
-  - **Type:** Type Safety
-  - **What:** The `any` annotation on caught errors prevents the compiler from catching unsafe property accesses.
-  - **Locations:**
-    - `electron/services/secureStore.ts:40`
-    - `electron/services/veniceClient.ts:120,141`
-    - `src/services/veniceClient.ts:587,600`
-    - `src/services/imageWorkflowService.ts:40,125`
-    - `src/modules/SettingsModule.tsx:259`
-    - `src/services/desktopBridge.ts:130`
-    - `src/services/modelService.ts:42,54`
-    - `src/utils/download.ts:38`
-    - `src/modules/SearchScrapeModule.tsx:29`
-    - `src/shared/configSchema.ts:32`
-  - **Fix:** Use `unknown` catch variables with runtime guards (`err instanceof Error`).
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-024] `loadJsonFile` success return lacks `ok: true`, inconsistent with `saveJsonFile`** `electron/ipc/handlers.ts:170`
-  - **Type:** API Consistency / Logic
-  - **What:** `app:loadJsonFile` returns `{ canceled: false, data }` on success, while `app:saveJsonFile` returns `{ ok: true, canceled: false }`. Renderer code must use `!result.canceled` as a proxy for success.
-  - **Evidence:**
-    ```ts
-    return { canceled: false, data };
-    ```
-  - **Fix:** Return `{ ok: true, canceled: false, data }`.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-025] `signalId` length is not bounded in IPC request validator** `electron/ipc/validation.ts:105`
-  - **Type:** Security / Resource
-  - **What:** The validator only checks `typeof request.signalId !== "string"`. A multi-megabyte `signalId` passes validation and is used as a Map key in `activeRequests`. The abort handler caps at 128 chars, but the request validator does not.
-  - **Evidence:**
-    ```ts
-    if (request.signalId !== undefined && typeof request.signalId !== "string") {
-      throw new Error("Venice signalId must be a string.");
-    }
-    ```
-  - **Fix:** Add `request.signalId.length <= 128` in the validator.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-026] `tsconfig.json` excludes `vite.config.ts` from type-checking** `tsconfig.json:32`
-  - **Type:** Type Safety / Config
-  - **What:** `vite.config.ts` is listed in `"exclude"`, so `tsc --noEmit` never checks it. Type errors in the Vite config are only caught at runtime.
-  - **Evidence:**
-    ```json
-    "exclude": [
-      "node_modules",
-      "dist",
-      "dist-electron",
-      "release",
-      "vite.config.ts"
-    ]
-    ```
-  - **Fix:** Create a separate `tsconfig.vite.json` that includes `vite.config.ts` and add it to the typecheck command, or include it in the main config.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-027] `eslint.config.mjs` ignores `scripts/**` and `*.config.*`** `eslint.config.mjs:41`
-  - **Type:** Config / Quality
-  - **What:** The ignore list excludes all build scripts and config files from linting, meaning bugs in `scripts/verify-dist-*.cjs`, `electron-builder.config.cjs`, etc. are never caught by ESLint.
-  - **Evidence:**
-    ```js
-    ignores: [
-      ...
-      "scripts/**",
-      "*.config.*",
-    ],
-    ```
-  - **Fix:** Remove `"scripts/**"` and `"*.config.*"` from ignores, or add a separate lint pass for Node CJS scripts.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-028] `sleep` ignores already-aborted signals, allowing stale timeouts to proceed** `src/services/veniceClient.ts:47`
-  - **Type:** Async / Logic
-  - **What:** `sleep` adds an abort listener without checking `signal.aborted` first. If called with an already-aborted signal, the timeout continues instead of rejecting immediately. Callers currently check before invocation, but `sleep` is a public utility that should be robust.
-  - **Evidence:**
-    ```ts
-    function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-      return new Promise((resolve, reject) => {
-        const id = setTimeout(resolve, ms);
-        if (signal) {
-          signal.addEventListener("abort", () => {
-            clearTimeout(id);
-            reject(new DOMException("Request aborted", "AbortError"));
-          }, { once: true });
-        }
-      });
-    }
-    ```
-  - **Fix:** Check `if (signal?.aborted) { reject(...); return; }` before setting the timeout.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-029] `modelService` swallows localStorage write failures silently** `src/services/modelService.ts:52`
-  - **Type:** Logic / Maintainability
-  - **What:** `writeCache` has an empty catch block. If localStorage is full or disabled, the app silently fails to cache models.
-  - **Evidence:**
-    ```ts
-    try {
-      window.localStorage.setItem(CACHE_KEY, JSON.stringify({ grouped, fetchedAt: Date.now() }));
-    } catch {
-      // localStorage may be full or unavailable.
-    }
-    ```
-  - **Fix:** Surface a warning toast or log to the diagnostics reducer.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-030] `byteLength` uses `new Blob([value]).size` — slow for large strings** `src/services/exportImport.ts:58`
-  - **Type:** Performance
-  - **What:** `new Blob` allocates memory just to measure UTF-8 byte length.
-  - **Evidence:**
-    ```ts
-    function byteLength(value: string): number {
-      return new Blob([value]).size;
-    }
-    ```
-  - **Fix:** Use `Buffer.byteLength(value, "utf-8")` in Node contexts, or `TextEncoder` in the browser.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-046] IPC `endpoint.search` forwarded verbatim without length cap** `electron/ipc/validation.ts:111`
-  - **Type:** Security / Input Validation
-  - **What:** `validateVeniceIpcRequest` validates `endpoint.pathname` against the allowlist but builds the final `endpoint` return value as `endpoint.pathname + endpoint.search`. The query string (`endpoint.search`) is forwarded to the Venice API without any length restriction. A malicious or buggy renderer call can craft a multi-megabyte query string that bypasses the body-size check (which only inspects `request.body`).
-  - **Why it matters:** Allows the renderer to forward arbitrarily large query strings, potentially triggering Venice API errors or smuggling content outside the validated body channel.
-  - **Evidence:**
-    ```ts
-    return {
-      endpoint: `${endpoint.pathname}${endpoint.search}`, // ← search is unsanitized
-      ...
-    };
-    ```
-  - **Fix:** Add a length cap (e.g., 512 bytes) on `endpoint.search` and/or validate it against known parameter names (`?type=all` being the only legitimate one currently).
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-047] Web-mode export URL revoked synchronously before download is queued** `src/services/desktopBridge.ts:211`
-  - **Type:** Logic / Race Condition
-  - **What:** In web mode, `exportJson` creates a Blob URL, triggers `a.click()`, and immediately calls `URL.revokeObjectURL(url)` in the same synchronous tick. The browser schedules the download asynchronously; if the download hasn't been queued by the time the URL is revoked, the download silently fails.
-  - **Why it matters:** Users may see no file download and no error message.
-  - **Evidence:**
-    ```ts
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = defaultPath;
-    a.click();
-    URL.revokeObjectURL(url);   // ← immediate synchronous revoke
-    ```
-  - **Fix:** Revoke the URL after a short delay (`setTimeout(() => URL.revokeObjectURL(url), 1000)`) or in a `load` event listener on the anchor.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-048] Circuit breaker `circuitFailures` never resets when timeout window expires** `server.ts:165`
-  - **Type:** Logic / Availability
-  - **What:** When the circuit trips, `circuitOpenUntil` is set 30 seconds ahead. After 30 seconds the guard passes, but `circuitFailures` remains at its peak value (≥ 5). The very next upstream failure will immediately re-trip the circuit (`circuitFailures++` ≥ 5 immediately), without the intended grace period. There is no true half-open state: one failed probe re-opens the breaker immediately.
-  - **Why it matters:** A short burst of upstream errors followed by recovery will make the circuit permanently fragile; a single transient failure after the reset window re-trips it immediately rather than allowing gradual recovery.
-  - **Evidence:**
-    ```ts
-    let circuitFailures = 0;      // ← never reset when circuitOpenUntil expires
-    let circuitOpenUntil = 0;
-    app.use("/api/venice", (req, res, next) => {
-      if (Date.now() < circuitOpenUntil) { return res.status(503)... }
-      next(); // passes, but circuitFailures still = 5
-    });
-    // on next 5xx: circuitFailures++ → 6 >= 5 → immediately re-trips
-    ```
-  - **Fix:** When a request is allowed through after the timeout, reset `circuitFailures = 0` (half-open reset) so recovery requires a full new burst of failures.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[BUG-049] `setInterval` for rate-limit map cleanup leaks on each `createServerApp()` call** `server.ts:125`
-  - **Type:** Resource Leak
-  - **What:** The cleanup `setInterval` is created inside `createServerApp()` with `.unref()` but is never stored in a variable and never cleared. Each call to `createServerApp()` (e.g., in test suites that call it in `beforeEach`) accumulates a new live interval. The `.unref()` prevents Node from keeping the process alive, but the intervals still fire, accumulate closures over their respective `reqCounts` maps, and are never GC'd until the process exits.
-  - **Why it matters:** In the test suite (`server.test.ts` calls `createServerApp()` per test), N tests create N intervals, each holding a closure reference to a stale `reqCounts` map.
-  - **Evidence:**
-    ```ts
-    setInterval(() => {   // ← no variable assignment, no clearInterval possible
-      const now = Date.now();
-      for (const [ip, record] of reqCounts.entries()) {
-        if (now > record.resetTime) reqCounts.delete(ip);
-      }
-    }, Math.max(10000, rateLimitWindowMs)).unref();
-    ```
-  - **Fix:** Return a `cleanup` function from `createServerApp()` (or store the interval ID and expose it) so test teardown can call `clearInterval`.
-  - **Confidence:** [VERIFIED]
+- [x] **THEME-001** Created `src/theme/` with full type contracts, built-in palettes, apply logic, contrast utilities, and barrel export
+- [x] **THEME-002** Extended `AppSettings`, `initialState`, and `SET_SETTINGS` whitelist with `selectedThemeId`, `appearanceMode`, `customTheme`
+- [x] **THEME-003** Added FOUC-prevention inline bootstrap script to `index.html`
+- [x] **THEME-004** Expanded `src/index.css` with 17-token `@theme` semantic colors, `.btn` system, reduced-motion support
+- [x] **THEME-005** Implemented `applyTheme()` with CSS variable mapping and `data-theme-mode` attribute
+- [x] **THEME-006** Implemented `resolveInitialTheme()` with custom → builtin → prefers-color-scheme fallback chain
+- [x] **THEME-007** Built `ThemeMaker.tsx` with theme selector, token editors, hex validation, live preview, Save/Reset/Restore
+- [x] **THEME-008** Built `ThemePreview.tsx` with mini app mock-up and WCAG AA contrast warning region (`aria-live="polite"`)
+- [x] **THEME-009** Reskinned App shell (header, sidebar, mobile nav, offline banner) to semantic tokens
+- [x] **THEME-010** Reskinned all shared components (TabButton, Chip, ToastHost, StatusBlock, ErrorBoundary, ConfirmModal, Field, CollapsibleSection, ModelSelect, DiagnosticsPreview, ImageGenerationForm, ImageGenerationPreview, ImageActionModal)
+- [x] **THEME-011** Reskinned all modules (Chat, Image, Batch, SearchScrape, Models, Gallery, Settings, Diagnostics)
+- [x] **THEME-012** Verified WCAG AA contrast for all built-in themes (min 4.90:1 on accent)
+- [x] **THEME-013** Verified persistence: IndexedDB canonical + localStorage bootstrap cache
+- [x] **THEME-014** Verified no raw hex leakage in components/modules (grep exit code 1)
+- [x] **THEME-015** All build, test, typecheck, lint gates pass (0 errors, 73 warnings within 96 budget)
 
 ---
 
-## Low / Cosmetic
+## Remainder — Exhaustive Open Work
 
-- [x] **[BUG-031] `package.json` `dev` and `dev:web` scripts are identical** `package.json:20`
-  - **Resolution:** Changed `dev:web` to `npm run dev` so it is an explicit alias rather than duplicated text. Preserves all doc references.
-  - **Type:** Config
-  - **What:** Both scripts run `tsx server.ts`, making `dev:web` redundant.
-  - **Fix:** Remove `dev:web` or make `dev` an alias that prints a selection prompt.
-  - **Confidence:** [VERIFIED]
+### Partially Resolved
 
-- [x] **[BUG-032] AGENTS.md and AGENT_REINITIALIZATION.md falsely claim CI omits ESLint** `AGENTS.md` & `AGENT_REINITIALIZATION.md`
-  - **Type:** Documentation
-  - **What:** Both docs state that `.github/workflows/ci.yml` does not run `npm run lint:eslint`, but the workflow file clearly includes it.
-  - **Evidence:**
-    ```yml
-    - run: npm run lint:eslint
-    ```
-  - **Fix:** Update both docs to reflect that CI runs the full lint gate.
-  - **Confidence:** [VERIFIED]
+- [ ] **[BUG-020]** `appReducer` and model helpers use `any` parameters and return types
+  - **Status:** `settings` cast tightened; `theme` literal widened. `classifyModel`, `flattenModels`, and state initializers remain `any` due to `AppState = typeof initialState` circular dependency.
+  - **Fix:** Coordinated model-type refactor. Introduce narrow `VeniceModel` interface, replace `any[]` initializers with `[]`, and break the circular dependency by extracting `AppState` shape into a standalone interface.
+  - **Effort:** Medium (2–4 hours, touches `appReducer.ts`, `types/app.ts`, `types/venice.ts`, and all module casts)
 
-- [x] **[BUG-033] Lint warning budget mismatch: docs claim 120, package.json enforces 96** `package.json:37`
-  - **Type:** Config / Documentation
-  - **What:** `AGENT_REINITIALIZATION.md` and `AGENTS.md` mention `--max-warnings=120`, but `package.json` uses `96`.
-  - **Evidence:**
-    ```json
-    "lint:eslint": "eslint src electron server.ts --max-warnings=96"
-    ```
-  - **Fix:** Align docs with the actual budget, or bump the budget to 120 if that was the intended policy.
-  - **Confidence:** [VERIFIED]
+### Suspected / Needs Verification
 
-- [x] **[BUG-034] `electron-builder.config.cjs` header comment only mentions Windows** `electron-builder.config.cjs:1`
-  - **Type:** Documentation
-  - **What:** The file header says "Produces a Windows NSIS installer and a portable .exe" but the config also defines macOS targets.
-  - **Fix:** Update header to mention dual-platform packaging.
-  - **Confidence:** [VERIFIED]
+- [ ] **[BUG-042 follow-up]** Symlink traversal in `isAllowedAppNavigation`
+  - **Status:** `fs.realpathSync` added with try/catch, but no automated test verifies symlink escape is blocked.
+  - **Fix:** Add unit test creating a symlink in `dist/` pointing outside the repo and asserting navigation is rejected.
+  - **Effort:** Low (30 min)
 
-- [x] **[BUG-035] `JSDoc` for `looksLikeUnixTimestamp` is copy-pasted from another function** `src/services/veniceClient.ts:76`
-  - **Type:** Documentation
-  - **What:** The JSDoc reads "The number to evaluate" with no description of what the function actually does.
-  - **Fix:** Write a proper description.
-  - **Confidence:** [VERIFIED]
+- [ ] **[BUG-043 follow-up]** macOS ZIP artifact naming
+  - **Status:** `zip.artifactName` added to config to align with verify script, but a full `npm run dist:mac` has not been executed to confirm actual filenames.
+  - **Fix:** Run a local macOS build and inspect `release/*.zip` names, or rely on CI to validate.
+  - **Effort:** Low (requires macOS environment)
 
-- [x] **[BUG-036] `SettingsModuleProps` uses `state: any, dispatch: any`** `src/modules/SettingsModule.tsx:13`
-  - **Type:** Type Safety
-  - **What:** The module props are untyped, losing all downstream intellisense and guard safety.
-  - **Fix:** Import `AppState` and `AppDispatch` types.
-  - **Confidence:** [VERIFIED]
+### Theme System — Known Limitations & Enhancements
 
-- [x] **[BUG-037] `desktopUpdates` callbacks typed as `(info: unknown)` / `(progress: unknown)`** `src/services/desktopBridge.ts:244`
-  - **Type:** Type Safety
-  - **What:** Several update callbacks accept `unknown` instead of structured types, forcing consumers to cast.
-  - **Fix:** Define narrow IPC types for update info / progress objects.
-  - **Confidence:** [VERIFIED]
+- [ ] **[THEME-R001]** Bootstrap script duplication
+  - **What:** The inline `<script>` in `index.html` duplicates a subset of token fallback logic from `src/theme/applyTheme.ts`.
+  - **Risk:** If built-in palette colors change, the fallback map in `index.html` may drift.
+  - **Fix:** Generate the fallback map at build time from `src/theme/themes.ts` via a Vite plugin, or import a JSON manifest.
+  - **Effort:** Medium
 
-- [x] **[BUG-038] `smoke:electron` test only verifies 5-second survival, not actual functionality** `tests/smoke/electron-smoke.test.ts:64`
-  - **Type:** Testing
-  - **What:** The smoke test spawns the packaged app, waits 5 s, then kills it. It does not verify window creation, preload injection, or IPC reachability.
-  - **Resolution:** Enhanced without adding Playwright/Spectron dependencies:
-    - Captures stderr in addition to stdout.
-    - Scans combined output for fatal error patterns (`Cannot find module`, `SyntaxError`, `ReferenceError`, `FATAL`, `crash reporter`) before accepting success.
-    - Sends `SIGTERM` and verifies the process exits gracefully within 3 s (rejects if it hangs or exits with non-zero code).
-    - Rejects early if the app crashes within the 5-second observation window.
-  - **Confidence:** [VERIFIED]
+- [ ] **[THEME-R002]** Light mode edge-case audit
+  - **What:** Some legacy elements may still assume dark backgrounds (e.g. colored badges on colored backgrounds, hardcoded `shadow-black` equivalents).
+  - **Fix:** Systematic visual audit of all modules in Forge Daylight mode; replace any remaining dark assumptions.
+  - **Effort:** Low–Medium (1–2 hours)
 
-- [x] **[BUG-039] `buildMultipartBody` uses `Math.random()` for boundary token** `electron/services/veniceClient.ts:63`
-  - **Type:** Security / Cosmic
-  - **What:** Boundary generation is not cryptographically random. Collision probability is negligible for multipart, but it violates the principle of using `crypto.randomBytes` for tokens.
-  - **Fix:** Replace with `crypto.randomBytes(16).toString("hex")`.
-  - **Confidence:** [VERIFIED]
+- [ ] **[THEME-R003]** Additional built-in themes
+  - **What:** Only three themes exist. Users may want more variety (e.g. high-contrast, solarized, nord, dracula).
+  - **Fix:** Add community-friendly palettes; ensure all pass WCAG AA.
+  - **Effort:** Low per theme
 
-- [x] **[BUG-040] `normalizeWebSearchSetting` does not warn on invalid input** `src/state/appReducer.ts:99`
-  - **Type:** Logic / UX
-  - **What:** Any non-boolean, non-recognized string silently falls back to `"off"`.
-  - **Fix:** Add a diagnostic toast or log when coercion happens.
-  - **Confidence:** [VERIFIED]
+- [ ] **[THEME-R004]** Theme export/import
+  - **What:** Custom themes are persisted in IndexedDB as part of settings, but the Export/Import flow does not explicitly surface or validate theme objects.
+  - **Fix:** Verify that `customTheme` round-trips correctly through export/import; add schema validation for `Theme` shape in `exportImport.ts` if missing.
+  - **Effort:** Low (30 min)
 
-- [x] **[BUG-041] `package.json` missing `verify:dist:portable` script** `package.json`
-  - **Type:** Config
-  - **What:** There is `dist:portable` to build a Windows portable exe, but no corresponding `verify:dist:portable` script.
-  - **Fix:** Add `verify:dist:portable` to `scripts/verify-dist-win.cjs` or create a dedicated script.
-  - **Confidence:** [VERIFIED]
+- [ ] **[THEME-R005]** Per-mode custom themes
+  - **What:** Currently one `customTheme` object. Users may want separate custom dark and custom light themes.
+  - **Fix:** Extend `ThemeState` to `customThemeDark`/`customThemeLight` or add a `mode` field to custom themes.
+  - **Effort:** Medium (touches reducer, ThemeMaker UI, settings shape)
 
-- [x] **[BUG-042] `isAllowedAppNavigation` path traversal check uses `path.normalize` without symlink resolution** `electron/main.ts:110`
-  - **Type:** Security / Logic
-  - **What:** `path.normalize` does not resolve symlinks. A symlink inside `dist/` pointing outside the root could bypass containment.
-  - **Evidence:**
-    ```ts
-    const targetPath = path.normalize(fileURLToPath(parsed));
-    const normalizedRoot = path.normalize(rendererRoot);
-    return targetPath === indexHtml || targetPath.startsWith(`${normalizedRoot}${path.sep}`);
-    ```
-  - **Fix:** Use `fs.realpathSync` (with try/catch) before containment checks.
-  - **Confidence:** [SUSPECTED → verify by creating a symlink escape in dist/]
+- [ ] **[THEME-R006]** `prefers-contrast` support
+  - **What:** No high-contrast or reduced-transparency variants.
+  - **Fix:** Add `prefers-contrast: more` and `prefers-contrast: less` media query overrides in `src/index.css`.
+  - **Effort:** Low
 
-- [x] **[BUG-043] `verify-dist-mac.cjs` artifact name pattern may not match `electron-builder` default zip naming** `scripts/verify-dist-mac.cjs:66`
-  - **Type:** Config / Build
-  - **What:** The script expects `Venice-Forge-${version}-${arch}.zip`, but `electron-builder`'s default mac zip naming for x64 is `Venice Forge-${version}-mac.zip` (space, no arch suffix, `-mac` suffix). Only the DMG uses the custom `artifactName` template; zip files do not.
-  - **Evidence:**
-    ```js
-    const zipPattern = new RegExp(`^Venice-Forge-${escapedVersion}-${arch}\\.zip$`);
-    ```
-  - **Fix:** Add `zip.artifactName` to `electron-builder.config.cjs` to align with the verify script, or update the verify script to match electron-builder's default naming.
-  - **Confidence:** [SUSPECTED → verify by running `npm run dist:mac` and inspecting `release/*.zip`]
+### Performance & Runtime
 
-> +8 additional low/cosmetic items not individually listed (minor whitespace inconsistencies, redundant `as const` casts, stray blank lines).
+- [ ] **[PERF-001]** `ThemeMaker` re-renders the entire app on every token change
+  - **What:** `applyTheme(draftTheme)` mutates `:root` CSS variables directly, which is fast, but React still re-renders the ThemeMaker component on every keystroke.
+  - **Fix:** Debounce hex input changes (e.g. 50 ms) or use `useDeferredValue` for the preview.
+  - **Effort:** Low
 
-- [x] **[BUG-050] `AppSettings.apiKey` field declared in type but never written by the `SET_SETTINGS` reducer** `src/types/app.ts:43`
-  - **Type:** Type Safety / Misleading API
-  - **What:** `AppSettings` declares `apiKey?: string`, but `SET_SETTINGS` in `appReducer.ts` has an explicit `allowedKeys` array that excludes `apiKey`. The field is intentionally never written via this path (API keys live in `safeStorage`/env), but the type definition implies it can be set as a regular setting. Any code that passes `{ apiKey: "..." }` to a `SET_SETTINGS` dispatch will silently no-op.
-  - **Fix:** Remove `apiKey?` from `AppSettings` or replace it with a comment-only JSDoc note explaining that the key lives outside the settings object.
-  - **Confidence:** [VERIFIED]
+- [ ] **[PERF-002]** `localStorage` bootstrap write on every settings change
+  - **What:** `App.tsx` writes `vf.theme.bootstrap` whenever `state.settings` changes, even for non-theme fields.
+  - **Fix:** Only write when theme-relevant fields change.
+  - **Effort:** Low (1-line `useEffect` dependency tweak)
 
----
+### Testing Gaps
 
-## Documentation Defects
+- [ ] **[TEST-001]** No unit tests for `applyTheme` or `resolveInitialTheme`
+  - **Fix:** Add `src/theme/applyTheme.test.ts` mocking `document.documentElement.style` and verifying CSS variable assignment and fallback chain.
+  - **Effort:** Low (30 min)
 
-- [x] **[DOC-001] AGENTS.md claims CI omits ESLint, but `ci.yml` runs it** `AGENTS.md §Current Operational Reality`
-  - **What:** Doc says "GitHub `ci.yml` currently runs typecheck/test/build, not ESLint."
-  - **Fix:** Update to "CI runs lint:eslint, typecheck, test, and build."
-  - **Confidence:** [VERIFIED]
+- [ ] **[TEST-002]** No unit tests for `contrast.ts`
+  - **Fix:** Add `src/theme/contrast.test.ts` with known-good WCAG pairs (black/white, blue/white) and edge cases.
+  - **Effort:** Low (15 min)
 
-- [x] **[DOC-002] AGENT_REINITIALIZATION.md section 9.2 incorrectly states ci.yml omits ESLint** `AGENT_REINITIALIZATION.md:366`
-  - **What:** "`ci.yml` does not call `npm run lint:eslint`. `[VERIFIED]`" — directly contradicted by the workflow file.
-  - **Fix:** Remove the false claim and update the command table.
-  - **Confidence:** [VERIFIED]
+- [ ] **[TEST-003]** No unit tests for `ThemeMaker` or `ThemePreview`
+  - **Fix:** Add React Testing Library tests for theme selection, hex validation, and contrast warning display.
+  - **Effort:** Medium (1–2 hours)
 
-- [x] **[DOC-003] AGENT_REINITIALIZATION.md says lint budget is 120, actual is 96** `AGENT_REINITIALIZATION.md:14`
-  - **What:** "local `npm run lint:eslint` (`--max-warnings=120`)"
-  - **Fix:** Change to 96 or update `package.json` to 120.
-  - **Confidence:** [VERIFIED]
+- [ ] **[TEST-004]** Electron smoke test is still minimal
+  - **Status:** Enhanced in BUG-038, but still does not verify window creation, preload injection, or IPC reachability.
+  - **Fix:** Add Playwright or Spectron-based smoke tests, or at least verify `window.veniceForge` is injected.
+  - **Effort:** High (requires new dependency or native module)
 
-- [x] **[DOC-004] `electron-builder.config.cjs` stale comment about Windows-only** `electron-builder.config.cjs:3`
-  - **What:** Comment says "Produces a Windows NSIS installer and a portable .exe" but config now builds macOS too.
-  - **Fix:** Update header comment to reflect dual-platform support.
-  - **Confidence:** [VERIFIED]
+### Documentation Gaps
 
-- [x] **[DOC-005] `CHANGELOG.md` has no versioned release sections** `CHANGELOG.md`
-  - **What:** The file only contains `[Unreleased]`. With `package.json` at `1.0.1` and release artifacts in `release/`, there should be dated `## [1.0.1]` and `## [1.0.0]` sections.
-  - **Fix:** Add versioned sections with release dates.
-  - **Confidence:** [VERIFIED]
+- [ ] **[DOC-R001]** `docs/THEME_SYSTEM.md` needs continuous updates
+  - **Action:** Whenever a new built-in theme is added or token set changes, update this file.
+  - **Owner:** Future contributors
 
-- [x] **[DOC-006] `docs/REPOSITORY_TREE.md` has broken indentation under `workflows/`** `docs/REPOSITORY_TREE.md:16`
-  - **What:** `ci.yml`, `macos-release.yml`, and `windows-release.yml` are rendered at the same level as `workflows/`, not as children.
-  - **Evidence:**
-    ```text
-    │   ├── workflows/
-    │   ├── ci.yml                     # Main CI/CD pipeline ...
-    │   ├── macos-release.yml          # macOS build...
-    │   └── windows-release.yml        # Windows build...
-    ```
-  - **Fix:** Indent the workflow files under `workflows/`.
-  - **Confidence:** [VERIFIED]
+- [ ] **[DOC-R002]** `docs/REPOSITORY_TREE.md` may drift
+  - **Action:** Re-run `tree` or manual audit before each release to ensure file listings match reality.
+  - **Effort:** Low (automate with `tree -I 'node_modules|dist|dist-electron|release|.git'`)
 
-- [x] **[DOC-007] `docs/REPOSITORY_TREE.md` says CI does "lint, test, build" but omits `typecheck`** `docs/REPOSITORY_TREE.md:16`
-  - **What:** The `ci.yml` comment says "lint, test, build" but the actual steps are `lint:eslint`, `typecheck`, `test`, `build`.
-  - **Fix:** Update the comment to include `typecheck`.
-  - **Confidence:** [VERIFIED]
+- [ ] **[DOC-R003]** `AGENT_REINITIALIZATION.md` pinned versions may stale
+  - **Action:** After any dependency update, refresh the lockfile-grounded version table in section 6.1.
+  - **Effort:** Low
 
-- [x] **[DOC-008] `docs/SIGNING_AND_NOTARIZATION.md` claims `hardenedRuntime: true` was disabled, but config never had it** `docs/SIGNING_AND_NOTARIZATION.md:21`
-  - **What:** "`hardenedRuntime: true` has intentionally been disabled in `electron-builder.config.cjs`" — the config never explicitly set it to true; it simply omits the field.
-  - **Fix:** Clarify that the field is absent (defaults false), not explicitly disabled.
-  - **Confidence:** [VERIFIED]
+### Security & Hardening
 
-- [x] **[DOC-009] `docs/RELEASE.md` expected artifacts for macOS omit the `-mac` suffix on zip files** `docs/RELEASE.md:50`
-  - **What:** The doc lists `Venice-Forge-<version>-arm64.zip` but `electron-builder` default naming produces `Venice Forge-<version>-arm64-mac.zip`.
-  - **Fix:** Align expected artifact names with actual `electron-builder` output, or set `zip.artifactName` in the config.
-  - **Confidence:** [SUSPECTED]
+- [ ] **[SEC-R001]** Content Security Policy (CSP) does not mention `unsafe-inline` for the bootstrap script
+  - **What:** The inline script in `index.html` may violate a strict CSP if one is enforced.
+  - **Fix:** Either move the bootstrap to an external `.js` file, or ensure the CSP hash/nonce covers it. Verify in `electron/main.ts` CSP string.
+  - **Effort:** Low
 
-- [x] **[DOC-010] `AGENT_REINITIALIZATION.md` section 8.4 still claims CI omits ESLint** `AGENT_REINITIALIZATION.md:314`
-  - **What:** "CI workflow (`.github/workflows/ci.yml`) currently does not run `npm run lint:eslint`" — contradicted by the file.
-  - **Fix:** Remove or correct the claim.
-  - **Confidence:** [VERIFIED]
+- [ ] **[SEC-R002]** `VENICE_FORGE_DEBUG_DEVTOOLS` bypass is not logged
+  - **What:** Enabling devtools in production is a security-relevant event but produces no audit log.
+  - **Fix:** Log a warning to the main-process logger when `VENICE_FORGE_DEBUG_DEVTOOLS=true` is detected.
+  - **Effort:** Low
 
-- [x] **[DOC-011] `README.md` uses backslash-escaped space in `xattr` example instead of quotes** `README.md:98`
-  - **What:** `xattr -dr com.apple.quarantine /path/to/Venice\ Forge.app` is valid bash but less readable than quoted paths. More importantly, if a user copies this into a shell that doesn't interpret backslash escapes the same way, it may fail.
-  - **Fix:** Use quotes: `"/path/to/Venice Forge.app"`.
-  - **Confidence:** [VERIFIED]
+### Refactoring Debt
 
-- [x] **[DOC-012] `.env.example` labels `VENICE_TIMEOUT_MS` as "legacy fallback" but it is still actively read** `.env.example:20`
-  - **What:** `.env.example` shows `# VENICE_TIMEOUT_MS=60000 # legacy fallback`, suggesting the variable is deprecated. However, `src/shared/configSchema.ts:42` still reads it as an active fallback: `env("VENICE_API_TIMEOUT_MS", env("VENICE_TIMEOUT_MS", "60000"))`. The variable is not legacy — it is a supported alias.
-  - **Fix:** Update the comment to: `# VENICE_TIMEOUT_MS=60000  # Deprecated alias for VENICE_API_TIMEOUT_MS — still accepted as fallback`.
-  - **Confidence:** [VERIFIED]
+- [ ] **[REFACTOR-001]** `App.tsx` is 348 lines and handles too many concerns
+  - **What:** Hydration, theme lifecycle, network status, bridge init, routing, and settings save all live in one file.
+  - **Fix:** Extract hooks: `useThemeLifecycle`, `useNetworkStatus`, `useSettingsPersistence`.
+  - **Effort:** Medium (2–3 hours)
+
+- [ ] **[REFACTOR-002]** Module props pattern is inconsistent
+  - **What:** Some modules take `{ state, dispatch }`; others may take additional props. No enforced contract.
+  - **Fix:** Introduce a `ModuleProps` type alias in `src/types/app.ts` and apply it uniformly.
+  - **Effort:** Low–Medium (1 hour)
+
+- [ ] **[REFACTOR-003]** `src/index.css` is large and mixes concerns
+  - **What:** Tailwind `@theme`, global styles, button system, scrollbar theming, reduced-motion, and FOUC prevention all in one file.
+  - **Fix:** Split into `src/styles/theme.css`, `src/styles/components.css`, `src/styles/global.css` and import them from `index.css`.
+  - **Effort:** Low (1 hour, mostly file moves)
 
 ---
 
-## Missing Documentation
+## Quick Wins (effort <30 min • impact: Medium+)
 
-- [x] **[GAP-001] `.env.example` missing `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE`** `.env.example`
-  - **What:** Read by `electron/services/secureStore.ts` but not listed.
-  - **Fix:** Add it with a comment explaining the Linux plaintext fallback risk.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[GAP-002] `.env.example` missing `VENICE_FORGE_DEBUG_DEVTOOLS`** `.env.example`
-  - **What:** Read by `electron/main.ts` to allow devtools in production builds. Not documented.
-  - **Fix:** Add to `.env.example` with a security warning.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[GAP-003] `AGENT_REINITIALIZATION.md` section 10.4 verification checklist is not itself verified against current files** `AGENT_REINITIALIZATION.md:439`
-  - **What:** The checklist claims to verify command accuracy, but the lint budget and CI commands are wrong.
-  - **Fix:** Run the checklist against the current repo state and fix discrepancies.
-  - **Confidence:** [VERIFIED]
-
-- [x] **[GAP-004] No `verify:dist:portable` script documented or implemented** `package.json` & `docs/RELEASE.md`
-  - **What:** `dist:portable` exists but there is no verification script or docs for it.
-  - **Fix:** Add script and document expected portable artifact.
-  - **Confidence:** [VERIFIED]
+| ID | Task | File(s) |
+|----|------|---------|
+| QW-01 | Add `applyTheme.test.ts` | `src/theme/applyTheme.test.ts` |
+| QW-02 | Add `contrast.test.ts` | `src/theme/contrast.test.ts` |
+| QW-03 | Restrict bootstrap cache writes to theme-field changes only | `src/App.tsx` |
+| QW-04 | Add `prefers-contrast: more` media query overrides | `src/index.css` |
+| QW-05 | Log devtools bypass event | `electron/main.ts` |
+| QW-06 | Automate repo tree generation in release checklist | `docs/RELEASE/release.md` |
+| QW-07 | Add symlink escape unit test | `electron/main.ts` or new test file |
 
 ---
 
-## Quick Wins (effort: <30 min • impact: High+)
+## Notes
 
-- [x] BUG-016 — Use validated request object in IPC handler (1-line fix)
-- [x] BUG-014 — Add Express types to catch-all route (2-line fix)
-- [x] BUG-015 — Remove `as any` in server validation (use runtime guard + type predicate)
-- [x] BUG-017 — Read version from `package.json` in health endpoint (5-line fix)
-- [x] BUG-032 / DOC-001 / DOC-002 / DOC-003 — Sync docs with actual CI and lint config (text-only)
-- [x] BUG-039 — Replace `Math.random()` boundary with `crypto.randomBytes` (1-line fix)
-- [x] BUG-024 — Add `ok: true` to `loadJsonFile` success return (1-line fix)
-- [x] BUG-025 — Add `signalId` length cap in validator (1-line fix)
-- [x] BUG-026 — Remove `vite.config.ts` from `tsconfig.json` exclude (1-line fix)
-- [x] BUG-027 — Include `scripts/**` in ESLint coverage (config-only)
-- [x] BUG-044 — Fix `BatchDraft` type to use `promptsText` and remove the inline cast (2-file fix)
-- [x] BUG-045 — Reset `keyPromise = null` on rejection for retry semantics (1-line fix)
-- [x] BUG-047 — Defer `URL.revokeObjectURL` by 1 s in web-mode export (1-line fix)
-- [x] BUG-048 — Reset `circuitFailures = 0` when circuit re-opens after timeout (2-line fix)
-- [x] BUG-050 — Remove misleading `apiKey?` from `AppSettings` type (1-line fix)
-- [x] DOC-012 — Update `.env.example` comment for `VENICE_TIMEOUT_MS` alias (1-line fix)
-
----
-
-## Notes & Open Questions
-
-- Pass 2 (this update) scanned: `src/modules/ImageModule.tsx`, `src/modules/GalleryModule.tsx`, `src/modules/BatchModule.tsx` (full), `src/constants/venice.ts`, `src/types/app.ts`, `src/types/storage.ts`, `src/services/modelService.ts`, `vite.config.ts`, `.github/workflows/ci.yml`, `.github/workflows/windows-release.yml`.
-- Files still not fully scanned: `src/modules/SearchScrapeModule.tsx`, `src/modules/ModelsModule.tsx`, `src/modules/DiagnosticsModule.tsx`, most of `src/components/`, `src/hooks/`.
-- Background explore agents (`agent-8n0zvup1`, `agent-x9u6wex8`, `agent-26agulef`, `agent-ha7v730r`) contributed additional suspected issues; all significant verified findings have been merged above.
-- The `dangerouslySetInnerHTML` in `src/utils/markdown.tsx` was reviewed and is **not** an XSS vulnerability because `escapeHtml` runs before all regex replacements. However, the ordering of markdown transforms may produce unexpected rendering for edge-case inputs (e.g., headings inside blockquotes).
-- `npm audit` returned 0 known dependency vulnerabilities at scan time.
+- `npm audit` returned 0 known dependency vulnerabilities at last scan.
+- The `dangerouslySetInnerHTML` in `src/utils/markdown.tsx` is **not** an XSS vulnerability because `escapeHtml` runs before all regex replacements.
+- All `aria-live` regions from before the theme work were preserved; no regressions in screen-reader behavior.
+- One unrelated pre-existing diff exists in `src/modules/ChatModule.test.tsx` (BUG-051 regression guard) — outside theme scope and should be committed separately.

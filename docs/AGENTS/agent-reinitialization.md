@@ -61,6 +61,7 @@ All nodes above exist as concrete files in repo. `[VERIFIED]`
 | API request/response | `src/services/veniceClient.ts`, `src/shared/validation.ts`, `electron/ipc/validation.ts`, `server.ts` | Only allowlisted endpoints and methods are accepted; retry logic targets `429/500/503`. `[VERIFIED]` |
 | Streaming chat | `src/services/veniceClient.ts`, `electron/preload.ts`, `electron/ipc/handlers.ts`, `electron/services/veniceClient.ts` | Streaming only for `POST /chat/completions`; delta transport keyed by `signalId`. `[VERIFIED]` |
 | Local state lifecycle | `src/App.tsx`, `src/state/appReducer.ts`, modules in `src/modules/` | One global reducer; modules receive `{ state, dispatch }`; settings persisted into IndexedDB. `[VERIFIED]` |
+| Theme system | `src/theme/*`, `src/App.tsx`, `src/components/ThemeMaker.tsx` | Token-based CSS variables; canonical state in IndexedDB; bootstrap cache in localStorage for FOUC prevention. `[VERIFIED]` |
 | Persistent local data | `src/services/storageService.ts`, `src/services/cryptoService.ts`, `src/services/exportImport.ts` | Store set is controlled by `STORE_NAMES`; encrypted wrapper used for selected stores; import/export size-limited and schema-checked. `[VERIFIED]` |
 | API key lifecycle | `electron/services/secureStore.ts`, `electron/ipc/handlers.ts`, `src/services/desktopBridge.ts` | Desktop mode stores key in safeStorage-backed file; renderer cannot read raw key. `[VERIFIED]` |
 | Diagnostics/logging | `src/services/veniceClient.ts`, `src/modules/DiagnosticsModule.tsx`, `electron/services/logger.ts` | Request diagnostics emitted via reducer actions; logs redact sensitive values. `[VERIFIED]` |
@@ -142,8 +143,10 @@ No structural change claims above are based on unstated PR metadata. `[VERIFIED]
 | File | Role | Edit risk |
 |---|---|---|
 | `src/services/veniceClient.ts` | Transport abstraction + retries + diagnostics + stream parsing + form serialization | Very high |
+| `src/theme/*.ts` | Theme token types, built-in palettes, CSS variable application, WCAG contrast utilities | Medium |
 | `src/state/appReducer.ts` | Global state transitions and model fallback behavior | High |
-| `src/App.tsx` | App bootstrapping, hydration, bridge init, tab routing | High |
+| `src/App.tsx` | App bootstrapping, hydration, bridge init, tab routing, theme lifecycle | High |
+| `src/theme/applyTheme.ts` | Maps semantic tokens to CSS variables and resolves initial theme | Medium |
 | `electron/main.ts` | Window security settings, CSP, navigation policy | Very high |
 | `electron/ipc/validation.ts` | Main security gate for renderer->main requests | Very high |
 | `electron/ipc/handlers.ts` | IPC endpoint bindings + diagnostics/files/update wiring | High |
@@ -278,6 +281,7 @@ All above are lockfile-grounded, not semver ranges from `package.json`. `[VERIFI
 | Theme | Primary commits | What changed |
 |---|---|---|
 | UI/Theming | `f87025a`, `b18b853` | Tailwind migration + accessibility polish. `[VERIFIED]` |
+| Theme system | `715fa1d` | Full token-based theming with built-in palettes, ThemeMaker UI, FOUC prevention, and WCAG AA contrast checking. `[VERIFIED]` |
 | Packaging/Release | `6a9b740`, `a8c8c9b`, `a4f5a19` | macOS support, signing checks, dist verifiers, checksums. `[VERIFIED]` |
 | Transport/Security | `3f0f15c`, `9385d66`, `6af3f1b` | IPC boundary hardening, endpoint-method checks, web key model changes. `[VERIFIED]` |
 
@@ -295,6 +299,7 @@ Grounded in TODOs, regression tests, and bug-fix history.
 ### 8.1 Transport and validation pitfalls
 
 - Adding a new endpoint in one place only (e.g., proxy but not IPC validation) causes mode divergence and runtime failures. `[VERIFIED]`
+- Adding a new built-in theme requires updating `src/theme/themes.ts`, the ThemeMaker selector, the bootstrap fallback map in `index.html`, and contrast verification. `[VERIFIED]`
 - Sending request bodies with GET is explicitly blocked in validation paths. `[VERIFIED]`
 - Trusting renderer headers (`authorization`, `host`, `cookie`) is forbidden; they are stripped. `[VERIFIED]`
 

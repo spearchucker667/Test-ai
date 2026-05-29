@@ -9,6 +9,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 ## [Unreleased]
 
 ### Added
+- **Theme System:** Complete token-based theming architecture with 17 semantic CSS variables mapped to Tailwind v4 utilities.
+  - Built-in themes: Forge Graphite (dark), Forge Daylight (light), Forge Copper (dark).
+  - ThemeMaker UI in Settings → Appearance with live preview, hex validation, and WCAG AA contrast warnings.
+  - FOUC-prevention bootstrap cache in `localStorage` read by inline script before React mounts.
+  - Canonical theme state persisted in encrypted IndexedDB (`app-settings` record).
+  - New source directory `src/theme/` with types, built-in palettes, apply logic, and contrast utilities.
+  - New components `ThemeMaker.tsx` and `ThemePreview.tsx`.
 - Added dual-platform macOS + Windows packaging support.
 - Added generated macOS `.icns` application icon.
 - Added cross-platform checksum sidecar generation (`.sha256`) for distribution artifacts.

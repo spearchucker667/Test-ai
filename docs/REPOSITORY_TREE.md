@@ -21,7 +21,7 @@ This document is the public map for the Venice Forge repository. It reflects the
 ├── build/
 │   ├── icon.icns                  # macOS application icon bundle
 │   ├── icon.ico                   # Windows application icon bundle
-│   └── icon-placeholder.md
+
 ├── docs/
 │   ├── AGENTS/
 │   │   ├── agents.md
@@ -62,6 +62,7 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   ├── services/
 │   ├── shared/
 │   ├── state/
+│   ├── theme/              # Token types, built-in palettes, applyTheme, contrast utilities
 │   ├── types/
 │   ├── utils/
 │   ├── App.tsx
@@ -75,7 +76,7 @@ This document is the public map for the Venice Forge repository. It reflects the
 ├── README.md
 ├── SECURITY.md
 ├── SUPPORT.md
-├── TODO.md
+├── todo.md
 ├── electron-builder.config.cjs
 ├── metadata.json
 ├── package-lock.json

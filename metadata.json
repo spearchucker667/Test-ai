@@ -1,6 +1,6 @@
 {
   "name": "Venice Forge",
-  "description": "Windows-first Electron desktop app and local web development proxy for private Venice API creation workflows.",
+  "description": "Private AI creation studio desktop app for Windows and macOS, powered by the Venice API. Features chat, image generation, web research, batch workflows, and a full token-based theme system.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

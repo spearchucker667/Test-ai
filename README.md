@@ -25,7 +25,7 @@ See [docs/ABOUT.md](docs/ABOUT.md) for project background and architecture overv
 | Research | Web research | Venice-augmented web search, page scraping, and document text extraction |
 | Catalog | Models | Live Venice model catalog with type, traits, and capability details |
 | Library | Gallery | Local image library with download, upscale, and bulk-export |
-| Config | Settings | API key management, theme, model defaults, data import/export |
+| Config | Settings | API key management, theme editor, model defaults, data import/export |
 | Status | Diagnostics | Transport mode, runtime info, rate-limit headers, and log access |
 
 ## Documentation
@@ -196,6 +196,10 @@ See [docs/LEGAL.md](docs/LEGAL.md) for the public-readiness legal notes, tradema
 | `401` / `403` | Invalid key or insufficient key scope |
 | `429` | Venice rate limit; wait for the reset period shown in the Status tab |
 | Transport failure | Open **Status**, copy diagnostics, inspect the logs folder |
+
+## Theme System
+
+Venice Forge includes a full token-based theme system with three built-in palettes (Forge Graphite, Forge Daylight, Forge Copper) and a live theme editor. Open **Config → Appearance → Theme Maker** to customize colors, preview changes in real time, and save custom themes. Themes persist across restarts via encrypted IndexedDB storage.
 
 ## Known Limitations
 

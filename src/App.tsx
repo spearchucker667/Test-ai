@@ -58,7 +58,9 @@ export default function App() {
         appearanceMode: state.settings.appearanceMode,
         customTheme: state.settings.customTheme,
       }));
-    } catch {}
+    } catch {
+      // localStorage may be disabled or full — bootstrap cache is best-effort
+    }
   }, [settingsHydrated, state.settings.selectedThemeId, state.settings.appearanceMode, state.settings.customTheme]);
 
   // Network status listener
