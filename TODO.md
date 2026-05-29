@@ -455,7 +455,7 @@
   - **Fix:** Update both docs to reflect that CI runs the full lint gate.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-033] Lint warning budget mismatch: docs claim 120, package.json enforces 96** `package.json:37`
+- [x] **[BUG-033] Lint warning budget mismatch: docs claim 120, package.json enforces 96** `package.json:37`
   - **Type:** Config / Documentation
   - **What:** `AGENT_REINITIALIZATION.md` and `AGENTS.md` mention `--max-warnings=120`, but `package.json` uses `96`.
   - **Evidence:**
@@ -465,7 +465,7 @@
   - **Fix:** Align docs with the actual budget, or bump the budget to 120 if that was the intended policy.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-034] `electron-builder.config.cjs` header comment only mentions Windows** `electron-builder.config.cjs:1`
+- [x] **[BUG-034] `electron-builder.config.cjs` header comment only mentions Windows** `electron-builder.config.cjs:1`
   - **Type:** Documentation
   - **What:** The file header says "Produces a Windows NSIS installer and a portable .exe" but the config also defines macOS targets.
   - **Fix:** Update header to mention dual-platform packaging.
@@ -631,16 +631,16 @@
 
 ## Quick Wins (effort: <30 min • impact: High+)
 
-- [ ] BUG-016 — Use validated request object in IPC handler (1-line fix)
-- [ ] BUG-014 — Add Express types to catch-all route (2-line fix)
-- [ ] BUG-015 — Remove `as any` in server validation (use runtime guard + type predicate)
-- [ ] BUG-017 — Read version from `package.json` in health endpoint (5-line fix)
-- [ ] BUG-032 / DOC-001 / DOC-002 / DOC-003 — Sync docs with actual CI and lint config (text-only)
-- [ ] BUG-039 — Replace `Math.random()` boundary with `crypto.randomBytes` (1-line fix)
-- [ ] BUG-024 — Add `ok: true` to `loadJsonFile` success return (1-line fix)
-- [ ] BUG-025 — Add `signalId` length cap in validator (1-line fix)
-- [ ] BUG-026 — Remove `vite.config.ts` from `tsconfig.json` exclude (1-line fix)
-- [ ] BUG-027 — Include `scripts/**` in ESLint coverage (config-only)
+- [x] BUG-016 — Use validated request object in IPC handler (1-line fix)
+- [x] BUG-014 — Add Express types to catch-all route (2-line fix)
+- [x] BUG-015 — Remove `as any` in server validation (use runtime guard + type predicate)
+- [x] BUG-017 — Read version from `package.json` in health endpoint (5-line fix)
+- [x] BUG-032 / DOC-001 / DOC-002 / DOC-003 — Sync docs with actual CI and lint config (text-only)
+- [x] BUG-039 — Replace `Math.random()` boundary with `crypto.randomBytes` (1-line fix)
+- [x] BUG-024 — Add `ok: true` to `loadJsonFile` success return (1-line fix)
+- [x] BUG-025 — Add `signalId` length cap in validator (1-line fix)
+- [x] BUG-026 — Remove `vite.config.ts` from `tsconfig.json` exclude (1-line fix)
+- [x] BUG-027 — Include `scripts/**` in ESLint coverage (config-only)
 
 ---
 
