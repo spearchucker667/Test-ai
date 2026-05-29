@@ -501,7 +501,7 @@
   - **Fix:** Replace with `crypto.randomBytes(16).toString("hex")`.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-040] `normalizeWebSearchSetting` does not warn on invalid input** `src/state/appReducer.ts:99`
+- [x] **[BUG-040] `normalizeWebSearchSetting` does not warn on invalid input** `src/state/appReducer.ts:99`
   - **Type:** Logic / UX
   - **What:** Any non-boolean, non-recognized string silently falls back to `"off"`.
   - **Fix:** Add a diagnostic toast or log when coercion happens.
@@ -566,7 +566,7 @@
   - **Fix:** Add versioned sections with release dates.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[DOC-006] `docs/REPOSITORY_TREE.md` has broken indentation under `workflows/`** `docs/REPOSITORY_TREE.md:16`
+- [x] **[DOC-006] `docs/REPOSITORY_TREE.md` has broken indentation under `workflows/`** `docs/REPOSITORY_TREE.md:16`
   - **What:** `ci.yml`, `macos-release.yml`, and `windows-release.yml` are rendered at the same level as `workflows/`, not as children.
   - **Evidence:**
     ```text
@@ -578,12 +578,12 @@
   - **Fix:** Indent the workflow files under `workflows/`.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[DOC-007] `docs/REPOSITORY_TREE.md` says CI does "lint, test, build" but omits `typecheck`** `docs/REPOSITORY_TREE.md:16`
+- [x] **[DOC-007] `docs/REPOSITORY_TREE.md` says CI does "lint, test, build" but omits `typecheck`** `docs/REPOSITORY_TREE.md:16`
   - **What:** The `ci.yml` comment says "lint, test, build" but the actual steps are `lint:eslint`, `typecheck`, `test`, `build`.
   - **Fix:** Update the comment to include `typecheck`.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[DOC-008] `docs/SIGNING_AND_NOTARIZATION.md` claims `hardenedRuntime: true` was disabled, but config never had it** `docs/SIGNING_AND_NOTARIZATION.md:21`
+- [x] **[DOC-008] `docs/SIGNING_AND_NOTARIZATION.md` claims `hardenedRuntime: true` was disabled, but config never had it** `docs/SIGNING_AND_NOTARIZATION.md:21`
   - **What:** "`hardenedRuntime: true` has intentionally been disabled in `electron-builder.config.cjs`" — the config never explicitly set it to true; it simply omits the field.
   - **Fix:** Clarify that the field is absent (defaults false), not explicitly disabled.
   - **Confidence:** [VERIFIED]
@@ -598,7 +598,7 @@
   - **Fix:** Remove or correct the claim.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[DOC-011] `README.md` uses backslash-escaped space in `xattr` example instead of quotes** `README.md:98`
+- [x] **[DOC-011] `README.md` uses backslash-escaped space in `xattr` example instead of quotes** `README.md:98`
   - **What:** `xattr -dr com.apple.quarantine /path/to/Venice\ Forge.app` is valid bash but less readable than quoted paths. More importantly, if a user copies this into a shell that doesn't interpret backslash escapes the same way, it may fail.
   - **Fix:** Use quotes: `"/path/to/Venice Forge.app"`.
   - **Confidence:** [VERIFIED]
@@ -607,12 +607,12 @@
 
 ## Missing Documentation
 
-- [ ] **[GAP-001] `.env.example` missing `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE`** `.env.example`
+- [x] **[GAP-001] `.env.example` missing `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE`** `.env.example`
   - **What:** Read by `electron/services/secureStore.ts` but not listed.
   - **Fix:** Add it with a comment explaining the Linux plaintext fallback risk.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[GAP-002] `.env.example` missing `VENICE_FORGE_DEBUG_DEVTOOLS`** `.env.example`
+- [x] **[GAP-002] `.env.example` missing `VENICE_FORGE_DEBUG_DEVTOOLS`** `.env.example`
   - **What:** Read by `electron/main.ts` to allow devtools in production builds. Not documented.
   - **Fix:** Add to `.env.example` with a security warning.
   - **Confidence:** [VERIFIED]
