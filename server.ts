@@ -241,7 +241,7 @@ export async function startServer() {
   } else if (AppConfig.NODE_ENV !== "test") {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
-    app.get("*", (req: any, res: any) => {
+    app.get("*", (req: express.Request, res: express.Response) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
