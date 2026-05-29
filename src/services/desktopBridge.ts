@@ -127,8 +127,8 @@ export const desktopApiKey = {
     try {
       const { response } = await veniceFetch("/models", { retry: false });
       return { ok: response.ok, status: response.status, message: response.statusText };
-    } catch (err: any) {
-      return { ok: false, status: err.status, message: err.message };
+    } catch (err) {
+      return { ok: false, status: err && typeof err === "object" && "status" in err ? (err as { status: number }).status : undefined, message: err instanceof Error ? err.message : "Request failed" };
     }
   },
 };

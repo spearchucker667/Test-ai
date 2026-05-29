@@ -150,8 +150,8 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       onApiKeyChange(true);
       setStatus("API key saved securely.");
       setStatusError("");
-    } catch (err: any) {
-      setStatusError(err.message || "Failed to save API key.");
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Failed to save API key.");
     }
   }
 
@@ -165,8 +165,8 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
           onApiKeyChange(false);
           setStatus("API key deleted.");
           setStatusError("");
-        } catch (err: any) {
-          setStatusError(err.message || "Failed to delete API key.");
+        } catch (err) {
+          setStatusError(err instanceof Error ? err.message : "Failed to delete API key.");
         }
       }
     );
@@ -183,8 +183,8 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       } else {
         setStatusError(`Connection failed: ${result.message}`);
       }
-    } catch (err: any) {
-      setStatusError(err.message || "Test failed.");
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Test failed.");
     } finally {
       setApiKeyTesting(false);
     }
@@ -204,8 +204,8 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
         `venice-forge-export-${new Date().toISOString().slice(0, 10)}.json`
       );
       if (ok) setStatus("Data exported.");
-    } catch (err: any) {
-      setStatusError(err.message || "Export failed.");
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Export failed.");
     }
   }
 
@@ -257,8 +257,8 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
         `Imported ${summary.imagesFound} images, ${summary.chatsFound} chats, ${summary.settingsFound} settings. ` +
           `${summary.skippedRecords} records skipped. Pre-import backup saved (${backup.data.images.length} images, ${backup.data.chats.length} chats).`
       );
-    } catch (err: any) {
-      setStatusError(err.message || "Import failed.");
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Import failed.");
     }
   }
 

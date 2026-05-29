@@ -58,9 +58,10 @@ export function GalleryModule({ state, dispatch }: { state: AppState; dispatch: 
       const saved = await upscaleGalleryImage(item, dispatch, { model: state.selectedImageModel });
       setExpanded(saved);
       setStatus(`Enhanced/upscaled copy saved: ${saved.id}`);
-    } catch (err: any) {
-      setError(err.message || "Upscale failed");
-      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: err.message || "Upscale failed", type: "error" } });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upscale failed";
+      setError(message);
+      dispatch({ type: "ADD_TOAST", toast: { id: crypto.randomUUID(), message: message, type: "error" } });
     } finally {
       setUpscalingId("");
     }

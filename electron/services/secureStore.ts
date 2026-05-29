@@ -37,8 +37,8 @@ function readStore(): Record<string, string> {
     }
     lastReadError = null;
     return parsed as Record<string, string>;
-  } catch (err: any) {
-    if (err?.code === "ENOENT") {
+  } catch (err) {
+    if (err && typeof err === "object" && "code" in err && (err as NodeJS.ErrnoException).code === "ENOENT") {
       lastReadError = null;
     } else {
       lastReadError = "Secure preferences file is corrupted or unreadable.";

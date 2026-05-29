@@ -38,10 +38,10 @@ export const generateImageWithWatermarkFallback = async (
   const payload = buildImagePayload(model, draft, promptOverride);
   try {
     return await veniceFetch("/image/generate", { method: "POST", body: payload, signal, dispatch });
-  } catch (err: any) {
+  } catch (err) {
     const watermarkRejected =
-      err?.status === 400 &&
-      String(err?.message || "").toLowerCase().includes("watermark") &&
+      err && typeof err === "object" && "status" in err && (err as { status: number }).status === 400 &&
+      String((err && typeof err === "object" && "message" in err ? (err as { message: string }).message : "") || "").toLowerCase().includes("watermark") &&
       !!payload.hide_watermark;
     if (!watermarkRejected) throw err;
 
@@ -123,9 +123,9 @@ export const upscaleGalleryImage = async (
     
     if (onComplete) onComplete();
     return saved;
-  } catch (err: any) {
+  } catch (err) {
     error("Upscale failed", err);
-    if (onError) onError(err);
+    if (onError) onError(err instanceof Error ? err : new Error(String(err)));
     throw err;
   }
 };
