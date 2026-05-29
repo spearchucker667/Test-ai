@@ -43,7 +43,7 @@
   - **Fix:** Use a single readwrite transaction for the check-and-set, or wrap the entire function in a promise mutex / `navigator.locks.request`.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-002] Release workflows declare `contents: read` but `action-gh-release` needs `contents: write`** `.github/workflows/windows-release.yml:9` & `.github/workflows/macos-release.yml:9`
+- [x] **[BUG-002] Release workflows declare `contents: read` but `action-gh-release` needs `contents: write`** `.github/workflows/windows-release.yml:9` & `.github/workflows/macos-release.yml:9`
   - **Type:** CI / Security / Operational
   - **What:** Both release workflows set `permissions: contents: read` at the workflow level. The `softprops/action-gh-release@v2` step that publishes to GitHub Releases requires `contents: write` to create releases and upload assets. Unless the repository overrides this at the org level, public tag releases will fail at the publish step.
   - **Evidence:**

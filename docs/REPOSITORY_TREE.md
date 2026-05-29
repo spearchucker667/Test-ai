@@ -13,9 +13,9 @@ This document is the public map for the Venice Forge repository. It reflects the
 │   │   ├── config.yml
 │   │   └── feature_request.md
 │   ├── workflows/
-│   │   ├── ci.yml                     # Main CI/CD pipeline (lint, test, build)
-│   ├── macos-release.yml          # macOS build, dmg/zip generation, checksums
-│   └── windows-release.yml        # Windows build, NSIS setup/portable generation, checksums
+│   │   ├── ci.yml                     # Main CI/CD pipeline (lint, typecheck, test, build)
+│   │   ├── macos-release.yml          # macOS build, dmg/zip generation, checksums
+│   │   └── windows-release.yml        # Windows build, NSIS setup/portable generation, checksums
 │   ├── dependabot.yml
 │   └── pull_request_template.md
 ├── build/
