@@ -7,7 +7,7 @@
 | Severity | Count |
 |----------|-------|
 | Critical | 2 |
-| High | 13 |
+| High | 12 |
 | Medium | 18 |
 | Low / Cosmetic | 14 (+8 grouped) |
 | Doc Defect | 11 |
@@ -286,7 +286,7 @@
   - **Fix:** Default to `unknown` instead of `any`, or require callers to supply the type.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-020] `appReducer` and model helpers use `any` parameters and return types** — 6 occurrences
+- [~] **[BUG-020] `appReducer` and model helpers use `any` parameters and return types** — Partially resolved. `settings` cast tightened to `Record<string, unknown>` and `theme` literal widened to union type. `classifyModel`, `flattenModels`, and state initializers remain `any` due to `AppState = typeof initialState` circular dependency — requires coordinated model-type refactor.
   - **Type:** Type Safety
   - **What:** `classifyModel(model: any)`, `flattenModels(payload: any)`, and state initializers use `any` arrays.
   - **Locations:**
@@ -439,7 +439,8 @@
 
 ## Low / Cosmetic
 
-- [ ] **[BUG-031] `package.json` `dev` and `dev:web` scripts are identical** `package.json:20`
+- [x] **[BUG-031] `package.json` `dev` and `dev:web` scripts are identical** `package.json:20`
+  - **Resolution:** Changed `dev:web` to `npm run dev` so it is an explicit alias rather than duplicated text. Preserves all doc references.
   - **Type:** Config
   - **What:** Both scripts run `tsx server.ts`, making `dev:web` redundant.
   - **Fix:** Remove `dev:web` or make `dev` an alias that prints a selection prompt.
@@ -489,10 +490,14 @@
   - **Fix:** Define narrow IPC types for update info / progress objects.
   - **Confidence:** [VERIFIED]
 
-- [ ] **[BUG-038] `smoke:electron` test only verifies 5-second survival, not actual functionality** `tests/smoke/electron-smoke.test.ts:64`
+- [x] **[BUG-038] `smoke:electron` test only verifies 5-second survival, not actual functionality** `tests/smoke/electron-smoke.test.ts:64`
   - **Type:** Testing
   - **What:** The smoke test spawns the packaged app, waits 5 s, then kills it. It does not verify window creation, preload injection, or IPC reachability.
-  - **Fix:** Add a minimal Playwright or Spectron check that the window title is "Venice Forge".
+  - **Resolution:** Enhanced without adding Playwright/Spectron dependencies:
+    - Captures stderr in addition to stdout.
+    - Scans combined output for fatal error patterns (`Cannot find module`, `SyntaxError`, `ReferenceError`, `FATAL`, `crash reporter`) before accepting success.
+    - Sends `SIGTERM` and verifies the process exits gracefully within 3 s (rejects if it hangs or exits with non-zero code).
+    - Rejects early if the app crashes within the 5-second observation window.
   - **Confidence:** [VERIFIED]
 
 - [x] **[BUG-039] `buildMultipartBody` uses `Math.random()` for boundary token** `electron/services/veniceClient.ts:63`
