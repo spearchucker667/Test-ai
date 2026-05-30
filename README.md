@@ -1,5 +1,14 @@
 # Venice Forge
 
+<p align="center">
+  <img src="./assets/branding/venice-logo-lockup-red.svg" alt="Venice Forge — unofficial Venice.ai API client" width="320" />
+</p>
+
+<p align="center">
+  <strong>An unofficial, third-party desktop client for the Venice API.</strong><br>
+  <em>Not endorsed by, sponsored by, or affiliated with Venice.ai, Inc.</em>
+</p>
+
 [![CI](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/ci.yml)
 [![Windows Release](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/windows-release.yml/badge.svg)](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/windows-release.yml)
 [![macOS Release](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/macos-release.yml/badge.svg)](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/macos-release.yml)
@@ -180,9 +189,13 @@ Read our full [Privacy & Security Model](PRIVACY.md) and the technical [SECURITY
 
 ## Legal and Terms
 
-Venice Forge is an independent open-source client for the Venice API. It is not endorsed by, sponsored by, or affiliated with Venice.ai, Inc. Users are responsible for complying with the current [Venice Terms of Service](https://venice.ai/legal/tos), [Venice privacy information](https://venice.ai/privacy), and [Venice API documentation](https://docs.venice.ai/) when using their own API keys.
+Venice Forge is an **independent, unofficial, third-party** open-source client for the Venice API. It is **not endorsed by, sponsored by, or affiliated with** Venice.ai, Inc.
 
-See [docs/LEGAL.md](docs/LEGAL.md) for the public-readiness legal notes, trademark notice, privacy limits, and release disclaimers.
+"Venice", "Venice.ai", the Venice keys mark, the Venice seal, the Venice wordmark, and the Venice lockup are trademarks and/or trade dress of Venice.ai, Inc. or its affiliates. All rights reserved. Use of these marks is for identification and compatibility purposes only and does not imply any official relationship.
+
+Users are responsible for complying with the current [Venice Terms of Service](https://venice.ai/legal/tos), [Venice privacy information](https://venice.ai/privacy), and [Venice API documentation](https://docs.venice.ai/) when using their own API keys.
+
+See [docs/LEGAL.md](docs/LEGAL.md) for the public-readiness legal notes, trademark notice, brand-compliance details, privacy limits, and release disclaimers.
 
 ## Troubleshooting
 

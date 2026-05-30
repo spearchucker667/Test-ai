@@ -79,7 +79,15 @@ export function ModelsModule({ state, dispatch }: { state: any; dispatch: any })
                   </div>
                 ))}
                 {!state.models[group]?.length && (
-                  <div className="p-4 text-center text-sm text-text-muted">No models discovered.</div>
+                  <div className="flex flex-col items-center justify-center gap-3 p-6 text-center">
+                    <img
+                      src="/assets/branding/venice-keys-red.svg"
+                      alt=""
+                      className="h-8 w-8 opacity-15"
+                      aria-hidden="true"
+                    />
+                    <div className="text-sm text-text-muted">No models discovered.</div>
+                  </div>
                 )}
               </div>
             </div>

@@ -194,8 +194,16 @@ export function GalleryModule({ state, dispatch }: ModuleProps) {
         </div>
 
         {!state.gallery.length && (
-          <div className="rounded-2xl border border-accent/20 bg-accent/5 p-8 text-center text-sm text-accent/80 shadow-[inset_0_0_40px_var(--glow)]">
-            No saved images yet. Generate an image and it will auto-save here.
+          <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-accent/20 bg-accent/5 p-12 text-center shadow-[inset_0_0_40px_var(--glow)]">
+            <img
+              src="/assets/branding/venice-keys-red.svg"
+              alt=""
+              className="h-12 w-12 opacity-20"
+              aria-hidden="true"
+            />
+            <div className="text-sm text-accent/80">
+              No saved images yet. Generate an image and it will auto-save here.
+            </div>
           </div>
         )}
 

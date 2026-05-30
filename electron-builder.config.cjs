@@ -18,7 +18,7 @@ const isCIRelease =
 const config = {
   appId: "ai.venice.forge",
   productName: "Venice Forge",
-  copyright: "Copyright © 2026 Venice Forge contributors",
+  copyright: "Copyright © 2026 Venice Forge contributors. Venice™, Venice.ai™, and the Venice marks are trademarks of Venice.ai, Inc. Used under identification/fair-use principles.",
 
   directories: {
     output: "release",
@@ -101,13 +101,11 @@ const config = {
     ],
   },
 
-  // Linux target is disabled until icon assets (icon.png)
-  // are added and the platform is smoke-tested.
-  // linux: {
-  //   target: [{ target: "AppImage", arch: ["x64"] }],
-  //   icon: "build/icon.png",
-  //   category: "Utility",
-  // },
+  linux: {
+    target: [{ target: "AppImage", arch: ["x64"] }],
+    icon: "build/icon.png",
+    category: "Utility",
+  },
 };
 
 module.exports = config;

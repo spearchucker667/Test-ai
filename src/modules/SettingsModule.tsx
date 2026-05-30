@@ -502,6 +502,36 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
             </>
           )}
         </div>
+
+        <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md shadow-xl">
+          <div className="flex items-center gap-3 mb-4">
+            <img
+              src="/assets/branding/venice-logo-lockup-red.svg"
+              alt="Venice Forge"
+              className="h-7 w-auto"
+            />
+          </div>
+          <div className="space-y-3 text-sm text-text-secondary">
+            <p>
+              <strong className="text-text-primary">Venice Forge</strong> is an <strong>unofficial, third-party</strong> desktop client for the Venice API.
+              It is <strong>not endorsed by, sponsored by, or affiliated with</strong> Venice.ai, Inc.
+            </p>
+            <p>
+              "Venice", "Venice.ai", the Venice keys mark, the Venice seal, the Venice wordmark, and the Venice lockup are
+              trademarks and/or trade dress of <a href="https://venice.ai" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Venice.ai, Inc.</a> or its affiliates.
+              All rights reserved. Use of these marks is for identification and compatibility purposes only.
+            </p>
+            <p>
+              Before using the app, review the official{" "}
+              <a href="https://venice.ai/legal/tos" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Venice Terms of Service</a>,{" "}
+              <a href="https://venice.ai/privacy" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">Privacy Policy</a>, and{" "}
+              <a href="https://docs.venice.ai/" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">API Documentation</a>.
+            </p>
+            <p className="text-xs text-text-muted pt-2 border-t border-border/50">
+              Venice Forge is licensed under the MIT License. This is not a compliance, legal, medical, financial, or safety-critical system.
+            </p>
+          </div>
+        </div>
       </div>
 
       <ConfirmModal

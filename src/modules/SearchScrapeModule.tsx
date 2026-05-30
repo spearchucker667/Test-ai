@@ -213,7 +213,15 @@ export function SearchScrapeModule({ state, dispatch }: ModuleProps) {
                   </div>
                 ))}
                 {!searchResults.length && (
-                  <div className="text-sm text-text-muted p-4 rounded-xl bg-surface/30 border border-border/50 text-center">No search results yet.</div>
+                  <div className="flex flex-col items-center justify-center gap-3 text-sm text-text-muted p-6 rounded-xl bg-surface/30 border border-border/50 text-center">
+                    <img
+                      src="/assets/branding/venice-keys-red.svg"
+                      alt=""
+                      className="h-8 w-8 opacity-15"
+                      aria-hidden="true"
+                    />
+                    <div>No search results yet.</div>
+                  </div>
                 )}
               </div>
             </div>

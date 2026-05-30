@@ -199,9 +199,12 @@ export default function App() {
       <header className="relative z-20 flex h-16 items-center border-b border-border/50 bg-bg/70 px-6 backdrop-blur-xl after:absolute after:-bottom-px after:left-0 after:right-0 after:h-px after:bg-gradient-to-r after:from-transparent after:via-accent/50 after:to-transparent">
         <div className="flex w-full items-center justify-between gap-4">
           <div className="flex min-w-0 items-center gap-3.5">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-accent to-warning text-lg font-extrabold text-accent-fg shadow-[0_2px_12px_var(--glow)] [text-shadow:0_1px_2px_var(--overlay)]">
-              V
-            </div>
+            <img
+              src="/assets/branding/venice-keys-red.svg"
+              alt="Venice"
+              className="h-9 w-9 shrink-0"
+              style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
+            />
             <div>
               <div className="whitespace-nowrap font-display text-lg font-bold tracking-tight text-text-primary [text-shadow:0_0_16px_var(--glow)]">
                 Venice Forge
@@ -237,6 +240,14 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
         <aside className="hidden w-[280px] min-w-[280px] flex-col justify-between border-r border-border/50 bg-bg/40 p-4 backdrop-blur-md lg:flex">
+          <div className="mb-4 px-2">
+            <img
+              src="/assets/branding/venice-logo-lockup-red.svg"
+              alt="Venice Forge"
+              className="h-8 w-auto"
+              style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))" }}
+            />
+          </div>
           <nav className="flex flex-col gap-2">
             {TABS.map(([id, label]) => (
               <TabButton
@@ -256,6 +267,14 @@ export default function App() {
 
         {/* Mobile Nav Rail (tablet width) */}
         <nav className="hidden w-20 min-w-[80px] flex-col items-center gap-3 border-r border-border/50 bg-bg/70 py-4 backdrop-blur-xl md:flex lg:hidden overflow-y-auto">
+          <div className="mb-2 px-2">
+            <img
+              src="/assets/branding/venice-keys-red.svg"
+              alt="Venice"
+              className="h-8 w-8"
+              style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))" }}
+            />
+          </div>
           {TABS.map(([id, label]) => (
             <TabButton
               key={id}

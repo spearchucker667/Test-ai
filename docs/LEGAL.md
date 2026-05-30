@@ -4,7 +4,33 @@ This document is informational, not legal advice. It records the legal and polic
 
 ## Project Status
 
-Venice Forge is an independent MIT-licensed desktop client for the Venice API. It is not endorsed by, sponsored by, or affiliated with Venice.ai, Inc. "Venice", "Venice.ai", and related marks belong to their respective owners.
+Venice Forge is an **independent, unofficial, third-party** MIT-licensed desktop client for the Venice API. It is **not endorsed by, sponsored by, or affiliated with** Venice.ai, Inc. "Venice", "Venice.ai", the Venice keys mark, the Venice seal, the Venice wordmark, and the Venice lockup are trademarks and/or trade dress of Venice.ai, Inc. or its affiliates. All rights reserved. Use of these marks is for identification and compatibility purposes only and does not imply any official relationship.
+
+The Venice brand assets used in this project are sourced from the public [Venice Brand Kit](https://venice.ai/brand) and are used in accordance with the Venice Brand Guidelines (July 2025) to the extent applicable to third-party reference implementations. Any deviation from the brand guidelines (e.g., app-icon derivation, empty-state watermarks) is noted below and should be reviewed for formal approval.
+
+## Venice.ai Trademark & Brand Attribution
+
+Venice Forge uses the following Venice.ai brand assets:
+
+| Asset | File | Usage in app |
+|---|---|---|
+| Venice Keys (red) | `assets/branding/venice-keys-red.svg` | App header mark, sidebar collapsed mark |
+| Venice Keys (white) | `assets/branding/venice-keys-white.svg` | Dark-theme header/sidebar variant |
+| Venice Keys (black) | `assets/branding/venice-keys-black.svg` | Light-theme header/sidebar variant |
+| Venice Lockup (red) | `assets/branding/venice-logo-lockup-red.svg` | Sidebar expanded, Settings → About panel |
+| Venice Lockup (white) | `assets/branding/venice-logo-lockup-white.svg` | Dark-theme lockup variant |
+| Venice Lockup (black) | `assets/branding/venice-logo-lockup-black.svg` | Light-theme lockup variant |
+| Venice Seal (red fill) | `assets/branding/venice-seal-red-fill.svg` | Settings → About panel (authority emblem) |
+
+### Brand-Compliance Notes
+
+1. **App icon derivation** — The desktop app icon (`.icns`, `.ico`, `.png`) is derived from the Venice Keys mark, centered on a square canvas without distortion. The Venice Brand Guidelines do **not** explicitly address third-party app-icon usage. This is treated as a compatibility/reference identifier, but it should be reviewed with Venice.ai for formal approval before wide distribution.
+2. **Empty-state watermark** — The brand guidelines state: *"Don't change the opacity of the icon or the logo."* Empty states in Venice Forge use the keys mark at small size with reduced CSS `opacity` (≈ 0.08–0.15) as a subtle watermark. **This is a known deviation** from the brand guidelines and should be replaced with a non-branded decorative element or approved by Venice.ai.
+3. **Color compliance** — All logo assets are rendered only in approved colors: black (`#000000`), white (`#ffffff`), or Venetian Red (`#DD3300`). No recoloring or gradient overlays are applied to the mark vectors themselves.
+4. **Clear space** — The mark is given adequate padding in the app header (≥ 8 px on all sides) and sidebar (≥ 12 px) to satisfy the exclusion-zone principle shown in the brand guidelines.
+5. **No modification of vectors** — SVG anchor points and curves are preserved exactly as provided in the brand kit.
+
+## Venice.ai Terms Coverage
 
 The app does not ship with an API key. Users provide their own Venice API key and are responsible for their own Venice account, usage, billing, content, and compliance obligations.
 
