@@ -46,6 +46,12 @@ vi.mock("../services/desktopBridge", () => ({
     delete: vi.fn().mockResolvedValue({ ok: true }),
     test: vi.fn().mockResolvedValue({ ok: true }),
   },
+  desktopJinaApiKey: {
+    isConfigured: vi.fn().mockResolvedValue(false),
+    set: vi.fn().mockResolvedValue({ ok: true }),
+    delete: vi.fn().mockResolvedValue({ ok: true }),
+    test: vi.fn().mockResolvedValue({ ok: true }),
+  },
   desktopApp: {
     getVersion: vi.fn().mockResolvedValue("1.0.0"),
     getDiagnostics: vi.fn().mockResolvedValue({ isDesktop: false, transport: "web-proxy" }),

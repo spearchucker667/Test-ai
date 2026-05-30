@@ -250,6 +250,26 @@ export const desktopChat = {
   },
 };
 
+/** Manages the Jina API key across desktop and web storage backends. */
+export const desktopJinaApiKey = {
+  async isConfigured(): Promise<boolean> {
+    if (isElectron()) return window.veniceForge!.jinaApiKey.isConfigured();
+    return false;
+  },
+  async set(key: string): Promise<{ ok: boolean }> {
+    if (isElectron()) return window.veniceForge!.jinaApiKey.set(key);
+    throw new Error("Jina API key storage is desktop-only.");
+  },
+  async delete(): Promise<{ ok: boolean }> {
+    if (isElectron()) return window.veniceForge!.jinaApiKey.delete();
+    return { ok: true };
+  },
+  async test(): Promise<{ ok: boolean; status?: number; message: string }> {
+    if (isElectron()) return window.veniceForge!.jinaApiKey.test();
+    return { ok: false, message: "Jina key test is desktop-only." };
+  },
+};
+
 /** Handles application updates, falling back to no-op in web mode. */
 export const desktopUpdates = {
   checkForUpdates(): Promise<{ ok: boolean; version?: string; error?: string }> {

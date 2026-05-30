@@ -88,6 +88,21 @@ const veniceForge = {
     },
   },
 
+  jinaApiKey: {
+    isConfigured(): Promise<boolean> {
+      return ipcRenderer.invoke("jinaApiKey:isConfigured");
+    },
+    set(key: string): Promise<{ ok: boolean }> {
+      return ipcRenderer.invoke("jinaApiKey:set", key);
+    },
+    delete(): Promise<{ ok: boolean }> {
+      return ipcRenderer.invoke("jinaApiKey:delete");
+    },
+    test(): Promise<{ ok: boolean; status?: number; message: string }> {
+      return ipcRenderer.invoke("jinaApiKey:test");
+    },
+  },
+
   app: {
     /** Returns the current application version.
      *  @returns A promise resolving with the version string.

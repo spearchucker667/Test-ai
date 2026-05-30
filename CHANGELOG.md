@@ -42,6 +42,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Venice 
 
 ### Added
 
+- **Multi-Provider Research System:** Pluggable research backends for search, scrape, and public-profile discovery.
+  - `src/research/providerTypes.ts` — common `ResearchProvider` interface with `venice`, `jina`, and `generic-http` IDs.
+  - `src/research/providers/veniceResearchProvider.ts` — non-breaking wrapper around existing Venice `/augment/search` and `/augment/scrape`.
+  - `src/research/providers/jinaResearchProvider.ts` — Jina AI Reader (`r.jina.ai`) and Search (`s.jina.ai`) adapter with optional `Authorization: Bearer` header and JSON/plain-text normalization.
+  - `src/research/providers/genericHttpScrapeProvider.ts` — SSRF-safe minimal HTTP fallback. Disabled by default. Blocks private IPs, localhost, `.local`, `.internal`, and non-HTTP(S) schemes.
+  - `src/research/agent/researchRunner.ts` — budgeted multi-step runner enforcing `maxQueries`, `maxResultsPerQuery`, `maxPages`, `perRequestTimeoutMs`, `totalJobTimeoutMs`, and domain allowlist/blocklist.
+  - `src/research/agent/researchSynthesis.ts` — evidence-only prompt builder with citation rules, uncertainty markers, and safety-guard constraints.
+  - `src/research/agent/socialDiscovery.ts` — public-profile query generator with platform-specific `site:` templates and deterministic confidence scoring (`low`/`medium`/`high`).
+  - `src/modules/SearchScrapeModule.tsx` — extended with **AI Research** and **Public Profile Discovery** tabs. Authorization checkbox gates profile-discovery runs. Provider selector supports Venice / Jina / Generic HTTP / Auto.
+  - `docs/RESEARCH_PROVIDERS.md`, `docs/JINA_PROVIDER.md`, `docs/PUBLIC_PROFILE_DISCOVERY.md` — architecture and usage guides.
+- **Jina API Key Storage:** Desktop-only secure storage for Jina keys via Electron `safeStorage`.
+  - `electron/services/secureStore.ts` — `setJinaApiKey`, `getJinaApiKey`, `deleteJinaApiKey`, `isJinaApiKeyConfigured` with identical encryption policy as Venice key.
+  - `electron/ipc/handlers.ts` — `jinaApiKey:isConfigured`, `jinaApiKey:set`, `jinaApiKey:delete`, `jinaApiKey:test` handlers.
+  - `electron/preload.ts` — `jinaApiKey` namespace exposed through contextBridge.
+  - `src/services/desktopBridge.ts` — `desktopJinaApiKey` abstraction.
+  - `src/modules/SettingsModule.tsx` — Jina API key panel with Save / Test / Delete buttons.
+
 - **Content Safety Guard:** A layered child-exploitation safety guard (`src/shared/safety/`) screens every Venice API request before it leaves the app.
   - `childExploitationGuard.ts` — multi-signal detection engine: hard term lists, CSAM genre labels, minor-age extraction (digit-preserving normalisation path), fuzzy bigram matching with allowlist, cross-field combined-text pass, and image-endpoint hard-block path. Produces a `SafetyGuardDecision` without throwing or logging raw prompt text.
   - `promptPayloadExtractor.ts` — endpoint-aware field extractor that reads `prompt`, `messages[].content`, and serialised FormData entries from raw payloads.

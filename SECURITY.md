@@ -52,12 +52,20 @@ is allowed. RFC 1918 and loopback addresses are blocked.
 
 ## API Key Storage
 
-Venice Forge stores your API key using OS-provided encryption where available:
+Venice Forge stores API keys using OS-provided encryption where available:
 - **Windows**: `safeStorage` (DPAPI)
 - **macOS**: `safeStorage` (Keychain)
 
-For Windows and macOS, there is **no plaintext fallback**. The application will refuse to save the API key if OS-level encryption is unavailable. 
+Both the **Venice API key** and the optional **Jina API key** use the same storage policy and file (`secure-prefs.json`).
+
+For Windows and macOS, there is **no plaintext fallback**. The application will refuse to save any API key if OS-level encryption is unavailable.
 For Linux and other platforms, a plaintext fallback may be permitted if the `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` environment variable is explicitly set in the process environment (e.g., `.env` for web mode development, or the shell environment for Electron).
+
+## Research Provider Security
+
+- **Jina AI**: Requests are sent directly to `r.jina.ai` and `s.jina.ai`. The Jina API key is redacted from all logs, diagnostics, and exports.
+- **Generic HTTP**: Disabled by default. When enabled, it uses a strict SSRF blocklist (no DNS resolution) and only allows `text/html`, `text/plain`, `application/xhtml+xml`, and `application/json` responses.
+- All research traffic respects the same endpoint allowlist and safety guard as Venice API calls.
 
 ## Not Protected Against
 

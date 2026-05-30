@@ -6,9 +6,12 @@ import fs from "fs/promises";
 import path from "path";
 import {
   deleteApiKey,
+  deleteJinaApiKey,
   getSecureStoreStatus,
   isApiKeyConfigured,
+  isJinaApiKeyConfigured,
   setApiKey,
+  setJinaApiKey,
 } from "../services/secureStore";
 import { getLastApiError, getLogsDir, logError, openLogsFolder } from "../services/logger";
 import { abortVeniceRequest, performVeniceRequest, readResponseError } from "../services/veniceClient";
@@ -196,6 +199,50 @@ export function registerIpcHandlers(): void {
   });
 
   ipcMain.handle("apiKey:test", () => testVeniceConnection());
+
+  ipcMain.handle("jinaApiKey:isConfigured", () => isJinaApiKeyConfigured());
+
+  ipcMain.handle("jinaApiKey:set", (_event, key: unknown) => {
+    try {
+      const trimmed = typeof key === "string" ? key.trim() : "";
+      if (!trimmed) throw new Error("Enter a Jina API key before saving.");
+      if (trimmed.length > 512) throw new Error("Jina API key is too long.");
+      setJinaApiKey(trimmed);
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("jinaApiKey:delete", () => {
+    try {
+      deleteJinaApiKey();
+      return { ok: true };
+    } catch (err) {
+      return { ok: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("jinaApiKey:test", async () => {
+    const jinaKey = (() => {
+      try {
+        const store = require("../services/secureStore") as typeof import("../services/secureStore");
+        return store.getJinaApiKey();
+      } catch { return null; }
+    })();
+    try {
+      const headers: Record<string, string> = {};
+      if (jinaKey) headers["Authorization"] = `Bearer ${jinaKey}`;
+      const response = await fetch("https://r.jina.ai/https://example.com", { headers, method: "GET" });
+      return {
+        ok: response.ok,
+        status: response.status,
+        message: response.ok ? "Jina connection successful" : `Jina returned ${response.status}`,
+      };
+    } catch (err) {
+      return { ok: false, status: 0, message: redactErrorMessage(err) };
+    }
+  });
 
   ipcMain.handle("app:getVersion", () => app.getVersion());
   ipcMain.handle("app:getDataPath", () => app.getPath("userData"));

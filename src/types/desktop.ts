@@ -95,6 +95,7 @@ export interface VeniceForge {
   readonly isDesktop: true;
   venice: VeniceForgeVenice;
   apiKey: VeniceForgeApiKey;
+  jinaApiKey: VeniceForgeApiKey;
   app: VeniceForgeApp;
   files: VeniceForgeFiles;
   chat: VeniceForgeChat;

@@ -40,7 +40,7 @@ See [docs/ABOUT.md](docs/ABOUT.md) for project background and architecture overv
 | Prompt | Chat | Multi-conversation streaming chat with system-prompt control, sidebar conversation management, and persistent history across restarts |
 | Create | Image generation | Single and batch image generation with upscaling and gallery save |
 | Batch | Batch runner | Run one prompt across multiple inputs or run many prompts in sequence |
-| Research | Web research | Venice-augmented web search, page scraping, and document text extraction |
+| Research | Web research | Multi-provider web search, page scraping, AI research synthesis, and public-profile discovery (Venice, Jina AI, or Generic HTTP) |
 | Catalog | Models | Live Venice model catalog with type, traits, and capability details |
 | Library | Gallery | Local image library with download, upscale, and bulk-export |
 | Config | Settings | API key management, theme editor, model defaults, data import/export |
@@ -72,6 +72,11 @@ All documentation is organized in the [docs](docs/) directory and root level. Se
 - **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)** — Community standards and reporting procedures.
 - **[PRIVACY.md](PRIVACY.md)** — Privacy policy and data handling.
 - **[SUPPORT.md](SUPPORT.md)** — Support channels and escalation.
+
+### Research Providers
+- **[docs/RESEARCH_PROVIDERS.md](docs/RESEARCH_PROVIDERS.md)** — Architecture and usage guide for Venice, Jina AI, and Generic HTTP providers.
+- **[docs/JINA_PROVIDER.md](docs/JINA_PROVIDER.md)** — Jina AI configuration, endpoints, and known limitations.
+- **[docs/PUBLIC_PROFILE_DISCOVERY.md](docs/PUBLIC_PROFILE_DISCOVERY.md)** — Public-profile discovery feature guide and authorization gate.
 
 ### Reference
 - **[docs/FAQ.md](docs/FAQ.md)** — Frequently asked questions.

@@ -7,7 +7,7 @@ import { ModelSelect } from "../components/ModelSelect";
 import { StatusBlock } from "../components/StatusBlock";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { ThemeMaker } from "../components/ThemeMaker";
-import { isElectron, desktopApiKey, desktopApp, desktopFiles, desktopUpdates } from "../services/desktopBridge";
+import { isElectron, desktopApiKey, desktopJinaApiKey, desktopApp, desktopFiles, desktopUpdates } from "../services/desktopBridge";
 import { listConversations, saveConversation } from "../services/chatStorage";
 import { createExportPayload, validateImportJson } from "../services/exportImport";
 import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
@@ -45,6 +45,11 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
   // Desktop-only: API key entry
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [apiKeyTesting, setApiKeyTesting] = useState(false);
+
+  // Desktop-only: Jina API key entry
+  const [jinaKeyInput, setJinaKeyInput] = useState("");
+  const [jinaKeyTesting, setJinaKeyTesting] = useState(false);
+  const [jinaKeyConfigured, setJinaKeyConfigured] = useState<boolean | null>(null);
 
   // Desktop-only: Updates
   const [updateStatus, setUpdateStatus] = useState<string>("");
@@ -200,6 +205,62 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
     }
   }
 
+  async function saveJinaKey() {
+    if (!jinaKeyInput.trim()) {
+      setStatusError("Please enter a Jina API key.");
+      return;
+    }
+    try {
+      await desktopJinaApiKey.set(jinaKeyInput.trim());
+      setJinaKeyInput("");
+      setJinaKeyConfigured(true);
+      setStatus("Jina API key saved securely.");
+      setStatusError("");
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Failed to save Jina API key.");
+    }
+  }
+
+  async function deleteJinaKey() {
+    confirm(
+      "Delete the stored Jina API key?",
+      "The Jina API key will be removed from OS-level secure storage.",
+      async () => {
+        try {
+          await desktopJinaApiKey.delete();
+          setJinaKeyConfigured(false);
+          setStatus("Jina API key deleted.");
+          setStatusError("");
+        } catch (err) {
+          setStatusError(err instanceof Error ? err.message : "Failed to delete Jina API key.");
+        }
+      }
+    );
+  }
+
+  async function testJinaKey() {
+    setJinaKeyTesting(true);
+    setStatus("");
+    setStatusError("");
+    try {
+      const result = await desktopJinaApiKey.test();
+      if (result.ok) {
+        setStatus(`Jina connection successful${result.status ? ` (HTTP ${result.status})` : ""}.`);
+      } else {
+        setStatusError(`Jina connection failed: ${result.message}`);
+      }
+    } catch (err) {
+      setStatusError(err instanceof Error ? err.message : "Jina test failed.");
+    } finally {
+      setJinaKeyTesting(false);
+    }
+  }
+
+  React.useEffect(() => {
+    if (!isElectron()) return;
+    desktopJinaApiKey.isConfigured().then((v) => setJinaKeyConfigured(v));
+  }, []);
+
   async function exportData() {
     try {
       const [images, chats, settings, conversations] = await Promise.all([
@@ -350,6 +411,47 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
             </div>
             <div className="text-sm text-text-secondary bg-surface/50 rounded-lg p-3 border border-border/50">
               Web mode uses the server .env key only. Manual local keys are desktop-only.
+            </div>
+          </div>
+        )}
+
+        {/* Jina API key management (desktop-only) */}
+        {isElectron() && (
+          <div className="rounded-2xl border border-border/50 bg-surface-elevated/40 p-6 backdrop-blur-md shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-text-primary">Jina API Key</h3>
+              <Chip tone={jinaKeyConfigured ? "ok" : "neutral"}>
+                {jinaKeyConfigured === null ? "…" : jinaKeyConfigured ? "Configured" : "Not set"}
+              </Chip>
+            </div>
+            <div className="text-sm text-text-secondary mb-6 bg-surface/50 rounded-lg p-3 border border-border/50">
+              Optional. Jina works without a key for low-volume usage. Stored using the same OS-level encryption as the Venice key.
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Field label="Enter Jina API key">
+                <input
+                  type="password"
+                  value={jinaKeyInput}
+                  onChange={(e) => setJinaKeyInput(e.target.value)}
+                  placeholder="jina_…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full bg-surface/50 border border-border/50 rounded-lg px-4 py-2.5 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all"
+                />
+              </Field>
+              <Field label="Actions">
+                <div className="flex flex-wrap gap-3">
+                  <button className="btn primary" onClick={saveJinaKey} disabled={!jinaKeyInput.trim()}>
+                    Save key
+                  </button>
+                  <button className="btn" onClick={testJinaKey} disabled={jinaKeyTesting || !jinaKeyConfigured}>
+                    {jinaKeyTesting ? "Testing…" : "Test connection"}
+                  </button>
+                  <button className="btn danger" onClick={deleteJinaKey} disabled={!jinaKeyConfigured}>
+                    Delete key
+                  </button>
+                </div>
+              </Field>
             </div>
           </div>
         )}

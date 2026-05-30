@@ -1,4 +1,4 @@
-/** @fileoverview Manages encrypted storage of the Venice API key using Electron
+/** @fileoverview Manages encrypted storage of API keys using Electron
  *  safeStorage (DPAPI on Windows, Keychain on macOS, Secret Service on Linux). */
 
 // Code Owner: fayeblade (@spearchucker667)
@@ -123,6 +123,74 @@ export function deleteApiKey(): void {
   delete store["apiKey"];
   delete store["apiKeyEncrypted"];
   writeStore(store);
+}
+
+// ── Jina API key storage (same safeStorage policy) ──
+
+/** Encrypts and stores the Jina API key using OS-level encryption when possible.
+ *  @param key The Jina API key to store.
+ */
+export function setJinaApiKey(key: string): void {
+  const store = readStore();
+  if (safeStorage.isEncryptionAvailable()) {
+    store["jinaApiKey"] = safeStorage.encryptString(key).toString("base64");
+    store["jinaApiKeyEncrypted"] = "true";
+  } else {
+    if (process.platform === "win32" || process.platform === "darwin") {
+      throw new Error(
+        `${process.platform === "win32" ? "Windows" : "macOS"} secure storage is unavailable. Venice Forge will not store the API key without OS encryption.`
+      );
+    }
+    if (!ALLOW_PLAINTEXT_FALLBACK) {
+      throw new Error(
+        "OS secure storage is unavailable. Set VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true to allow documented plaintext fallback."
+      );
+    }
+    store["jinaApiKey"] = key;
+    store["jinaApiKeyEncrypted"] = "false";
+  }
+  writeStore(store);
+}
+
+/** Retrieves and decrypts the stored Jina API key, if available.
+ *  @returns The decrypted key, or null if missing or corrupted.
+ */
+export function getJinaApiKey(): string | null {
+  const store = readStore();
+  const raw = store["jinaApiKey"];
+  if (typeof raw !== "string" || raw.length === 0) return null;
+
+  const encryptedFlag = store["jinaApiKeyEncrypted"] as unknown;
+  const isEncrypted = encryptedFlag === "true" || encryptedFlag === true;
+
+  if (isEncrypted) {
+    try {
+      return safeStorage.decryptString(Buffer.from(raw, "base64"));
+    } catch {
+      lastReadError = "Failed to decrypt Jina API key. The stored data may be corrupted or the OS credential changed.";
+      return null;
+    }
+  }
+
+  if (process.platform === "win32" || process.platform === "darwin") {
+    lastReadError = "Plaintext Jina API key storage is not allowed on this platform.";
+    return null;
+  }
+
+  return raw;
+}
+
+/** Removes the stored Jina API key from secure preferences. */
+export function deleteJinaApiKey(): void {
+  const store = readStore();
+  delete store["jinaApiKey"];
+  delete store["jinaApiKeyEncrypted"];
+  writeStore(store);
+}
+
+/** Checks whether a usable Jina API key is currently stored. */
+export function isJinaApiKeyConfigured(): boolean {
+  return getJinaApiKey() !== null;
 }
 
 /** Checks whether a usable Venice API key is currently stored. */

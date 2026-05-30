@@ -24,6 +24,19 @@ describe("SearchScrapeModule", () => {
     return render(<SearchScrapeModule state={initialState} dispatch={dispatch} />);
   }
 
+  it("disables profile discovery run button until authorization is checked", async () => {
+    renderModule();
+    await userEvent.click(screen.getByRole("button", { name: /public profile discovery/i }));
+
+    const runBtn = screen.getByRole("button", { name: /discover public profiles/i });
+    expect(runBtn).toBeDisabled();
+
+    await userEvent.type(screen.getByPlaceholderText(/example brand/i), "Test Name");
+    const checkbox = screen.getByRole("checkbox", { name: /i confirm this search/i });
+    await userEvent.click(checkbox);
+    expect(runBtn).toBeEnabled();
+  });
+
   it("shows a clear message for invalid search response shape", async () => {
     vi.mocked(veniceFetch).mockResolvedValueOnce({ data: { nope: true } } as any);
     renderModule();
