@@ -9,6 +9,13 @@
   <em>Not endorsed by, sponsored by, or affiliated with Venice.ai, Inc.</em>
 </p>
 
+> [!IMPORTANT]
+> **Venice Forge is an unofficial, third-party desktop client for the Venice API.**
+>
+> This project is not affiliated with, endorsed by, sponsored by, approved by, maintained by, or certified by Venice.ai, Inc. "Venice", "Venice.ai", the Venice wordmark, the Venice seal, the Venice keys mark, the Venice lockup, and related marks are trademarks or trade dress of Venice.ai, Inc.
+>
+> Any Venice names or brand assets shown in this project are used solely for nominative identification of API compatibility and provider integration. Official Venice brand assets remain the property of Venice.ai, Inc. and are not owned by this project.
+
 [![CI](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/ci.yml/badge.svg)](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/ci.yml)
 [![Windows Release](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/windows-release.yml/badge.svg)](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/windows-release.yml)
 [![macOS Release](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/macos-release.yml/badge.svg)](https://github.com/spearchucker667/Venice-API-connector/actions/workflows/macos-release.yml)
@@ -187,11 +194,26 @@ Production CSP does not allow localhost networking. Navigation is blocked except
 
 Read our full [Privacy & Security Model](PRIVACY.md) and the technical [SECURITY.md](SECURITY.md) for more details.
 
+## Trademark and Brand Notice
+
+Venice Forge is an unofficial, third-party desktop client for the Venice API.
+
+This project is not affiliated with, endorsed by, sponsored by, approved by, maintained by, or certified by Venice.ai, Inc. "Venice", "Venice.ai", the Venice wordmark, the Venice seal, the Venice keys mark, the Venice lockup, and related marks are trademarks or trade dress of Venice.ai, Inc.
+
+Use of Venice names and marks in this project is solely for nominative identification of API compatibility and provider integration. Official Venice brand assets remain the property of Venice.ai, Inc. and are not owned by this project.
+
+This project's MIT License applies to this project's original code and documentation unless otherwise noted. It does not grant rights to Venice.ai trademarks, trade dress, logos, wordmarks, brand assets, API terms, or third-party materials.
+
+Before using this app with the Venice API, review:
+
+- [Venice Terms of Service](https://venice.ai/legal/tos)
+- [Venice Privacy Policy](https://venice.ai/legal/privacy)
+- [Venice API Documentation](https://docs.venice.ai)
+- [Venice Brand Guidelines](https://venice.ai/brand)
+
 ## Legal and Terms
 
 Venice Forge is an **independent, unofficial, third-party** open-source client for the Venice API. It is **not endorsed by, sponsored by, or affiliated with** Venice.ai, Inc.
-
-"Venice", "Venice.ai", the Venice keys mark, the Venice seal, the Venice wordmark, and the Venice lockup are trademarks and/or trade dress of Venice.ai, Inc. or its affiliates. All rights reserved. Use of these marks is for identification and compatibility purposes only and does not imply any official relationship.
 
 Users are responsible for complying with the current [Venice Terms of Service](https://venice.ai/legal/tos), [Venice privacy information](https://venice.ai/privacy), and [Venice API documentation](https://docs.venice.ai/) when using their own API keys.
 

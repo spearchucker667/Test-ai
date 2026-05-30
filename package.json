@@ -1,7 +1,7 @@
 {
   "name": "venice-forge",
   "productName": "Venice Forge",
-  "description": "Private AI creation studio desktop app powered by the Venice API.",
+  "description": "Unofficial third-party desktop client for the Venice API. Not affiliated with Venice.ai, Inc.",
   "author": "fayeblade (@spearchucker667)",
   "license": "MIT",
   "private": true,

@@ -1,6 +1,6 @@
 {
   "name": "Venice Forge",
-  "description": "Private AI creation studio desktop app for Windows and macOS, powered by the Venice API. Features chat, image generation, web research, batch workflows, and a full token-based theme system.",
+  "description": "Unofficial third-party desktop client for the Venice API. Not affiliated with Venice.ai, Inc.",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }

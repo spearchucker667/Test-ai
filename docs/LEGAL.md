@@ -30,11 +30,21 @@ Venice Forge uses the following Venice.ai brand assets:
 4. **Clear space** — The mark is given adequate padding in the app header (≥ 8 px on all sides) and sidebar (≥ 12 px) to satisfy the exclusion-zone principle shown in the brand guidelines.
 5. **No modification of vectors** — SVG anchor points and curves are preserved exactly as provided in the brand kit.
 
-## Venice.ai Terms Coverage
+## Unofficial Status
+
+Venice Forge is an **unofficial, third-party** desktop client for the Venice API. It is **not affiliated with, endorsed by, sponsored by, approved by, maintained by, or certified by** Venice.ai, Inc.
+
+## Trademark Notice
+
+"Venice", "Venice.ai", the Venice wordmark, the Venice seal, the Venice keys mark, the Venice lockup, and related marks are trademarks or trade dress of Venice.ai, Inc. Use of these names and marks in Venice Forge is solely for nominative identification of API compatibility and provider integration.
+
+## Brand Asset Notice
+
+Official Venice brand assets displayed in this app remain the property of Venice.ai, Inc. They are not owned by this project and are not covered by this project's open-source license except where Venice.ai, Inc. expressly permits such use.
+
+## User Responsibility
 
 The app does not ship with an API key. Users provide their own Venice API key and are responsible for their own Venice account, usage, billing, content, and compliance obligations.
-
-## Venice.ai Terms Coverage
 
 Before using the app with the Venice API, users should review the current official Venice materials:
 

@@ -5,6 +5,7 @@ import { Chip } from "../components/Chip";
 import { copyText } from "../utils/download";
 import { isElectron, desktopApp } from "../services/desktopBridge";
 import { redactSecrets } from "../services/redaction";
+import { SHORT_UNOFFICIAL_NOTICE } from "../shared/legal";
 import type { VeniceForgeDiagnostics } from "../types/desktop";
 
 function nowIso() {
@@ -67,6 +68,9 @@ export function DiagnosticsModule({ state, dispatch, apiKeyConfigured }: Diagnos
             <div className="text-sm text-text-secondary mt-1">
               Latest request, normalized headers, rate limits, balance, and error
               mapping.
+            </div>
+            <div className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-warning">
+              {SHORT_UNOFFICIAL_NOTICE}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">

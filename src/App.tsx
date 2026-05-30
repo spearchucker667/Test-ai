@@ -20,8 +20,11 @@ import { ToastHost } from "./components/ToastHost";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { Chip } from "./components/Chip";
 import { TabButton } from "./components/TabButton";
+import { ConfirmModal } from "./components/ConfirmModal";
+import { FirstRunModal } from "./components/FirstRunModal";
 import { initDesktopBridge, isElectron, desktopApiKey } from "./services/desktopBridge";
 import { warn } from "./shared/logger";
+import { APP_DESCRIPTOR, FIRST_RUN_COPY, FIRST_RUN_ACK_KEY } from "./shared/legal";
 import { GalleryImage } from "./types/storage";
 import { listConversations, saveConversation, createConversation } from "./services/chatStorage";
 import type { Conversation, ConversationMessage } from "./types/conversation";
@@ -38,6 +41,7 @@ export default function App() {
   const [firstRunRouted, setFirstRunRouted] = useState(false);
   const [dbReady, setDbReady] = useState(false);
   const [settingsHydrated, setSettingsHydrated] = useState(false);
+  const [showFirstRun, setShowFirstRun] = useState(false);
 
   useThemeLifecycle(state.settings, settingsHydrated);
   useNetworkStatus(dispatch);
@@ -193,6 +197,26 @@ export default function App() {
 
   useSettingsPersistence(state.settings, dbReady, settingsHydrated, dispatch);
 
+  // First-run legal acknowledgment
+  useEffect(() => {
+    if (!dbReady) return;
+    try {
+      const ack = localStorage.getItem(FIRST_RUN_ACK_KEY);
+      if (!ack) setShowFirstRun(true);
+    } catch {
+      // Storage unavailable — don't block the app
+    }
+  }, [dbReady]);
+
+  function acknowledgeFirstRun() {
+    try {
+      localStorage.setItem(FIRST_RUN_ACK_KEY, "1");
+    } catch {
+      // Best-effort persistence
+    }
+    setShowFirstRun(false);
+  }
+
   return (
     <div className="flex h-screen flex-col bg-transparent">
       {/* Header */}
@@ -202,6 +226,7 @@ export default function App() {
             <img
               src="./assets/branding/venice-keys-red.svg"
               alt="Venice"
+              title="Venice keys mark — used for API compatibility identification. Venice Forge is unofficial."
               className="h-9 w-9 shrink-0"
               style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}
             />
@@ -210,7 +235,10 @@ export default function App() {
                 Venice Forge
               </div>
               <div className="mt-0.5 hidden font-sans text-xs font-medium text-text-muted sm:block">
-                Private AI creation studio
+                {APP_DESCRIPTOR}
+              </div>
+              <div className="mt-0.5 hidden font-sans text-[10px] font-semibold uppercase tracking-wider text-warning sm:block">
+                Unofficial third-party client
               </div>
             </div>
           </div>
@@ -244,6 +272,7 @@ export default function App() {
             <img
               src="./assets/branding/venice-logo-lockup-red.svg"
               alt="Venice Forge"
+              title="Venice Forge — unofficial third-party client for the Venice API"
               className="h-8 w-auto"
               style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))" }}
             />
@@ -259,9 +288,19 @@ export default function App() {
               />
             ))}
           </nav>
-          <div className="rounded-xl border border-border/50 bg-surface/60 p-4 shadow-lg backdrop-blur-md">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted">System</div>
-            <div className="mt-1 text-xs text-text-secondary">{isElectron() ? "IPC Transport" : "Proxy Active"}</div>
+          <div className="rounded-xl border border-border/50 bg-surface/60 p-4 shadow-lg backdrop-blur-md space-y-2">
+            <div>
+              <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted">System</div>
+              <div className="mt-1 text-xs text-text-secondary">{isElectron() ? "IPC Transport" : "Proxy Active"}</div>
+            </div>
+            <div className="border-t border-border/50 pt-2">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-warning leading-tight">
+                Unofficial client
+              </div>
+              <div className="mt-0.5 text-[10px] text-text-muted leading-tight">
+                Not affiliated with Venice.ai
+              </div>
+            </div>
           </div>
         </aside>
 
@@ -271,6 +310,7 @@ export default function App() {
             <img
               src="./assets/branding/venice-keys-red.svg"
               alt="Venice"
+              title="Venice keys mark — used for API compatibility identification. Venice Forge is unofficial."
               className="h-8 w-8"
               style={{ filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))" }}
             />
@@ -341,6 +381,16 @@ export default function App() {
         </div>
       )}
       <ToastHost state={state} dispatch={dispatch} />
+
+      {/* First-run legal acknowledgment */}
+      <FirstRunModal
+        open={showFirstRun}
+        onAcknowledge={acknowledgeFirstRun}
+        onDismiss={() => {
+          // Non-blocking: user can dismiss without acknowledging, but modal will reappear
+          setShowFirstRun(false);
+        }}
+      />
     </div>
   );
 }
