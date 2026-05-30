@@ -2,6 +2,7 @@
 
 import { DiagnosticsEntry } from "./venice";
 import { GalleryImage } from "./storage";
+import type { Conversation } from "./conversation";
 
 /** Represents a single message in a chat conversation. */
 export interface ChatRecord {
@@ -73,6 +74,8 @@ export interface AppState {
   diagnosticsLog: import("./venice").DiagnosticsEntry[];
   gallery: import("./storage").GalleryImage[];
   chats: import("./storage").ChatHistoryItem[];
+  conversations: Conversation[];
+  activeConversationId: string | null;
   sourcePanelOpen: boolean;
   isOnline: boolean;
   modelLoadError: string;
@@ -96,6 +99,8 @@ export type AppAction =
   | { type: "SET_DIAGNOSTICS"; diagnostics: Partial<DiagnosticsEntry> }
   | { type: "SET_GALLERY"; items: GalleryImage[] }
   | { type: "SET_CHATS"; items: import("./storage").ChatHistoryItem[] }
+  | { type: "SET_CONVERSATIONS"; items: Conversation[] }
+  | { type: "SET_ACTIVE_CONVERSATION"; id: string | null }
   | { type: "SET_CHAT_DRAFT"; patch: Partial<AppState['chatDraft']> }
   | { type: "SET_IMAGE_DRAFT"; patch: Partial<ImageDraft> }
   | { type: "SET_BATCH_DRAFT"; patch: Partial<BatchDraft> }

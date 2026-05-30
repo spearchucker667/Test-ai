@@ -71,13 +71,13 @@ export const DIAG_HEADER_NAMES = [
 export const DEFAULT_SYSTEM_PROMPT = "You are a precise, useful AI assistant inside Venice Forge.";
 
 /** IndexedDB object store names used by the application. */
-export const STORE_NAMES = ["images", "chats", "settings", "diagnostics"];
+export const STORE_NAMES = ["images", "chats", "settings", "diagnostics", "conversations"];
 
 /** Name of the IndexedDB database. */
 export const DB_NAME = "venice_canvas_studio_v1";
 
 /** Version of the IndexedDB schema. */
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 /** Delay between batched image generation requests to avoid rate limits. */
 export const IMAGE_BATCH_INTER_REQUEST_DELAY_MS = 750;

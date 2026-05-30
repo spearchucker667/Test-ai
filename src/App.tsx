@@ -23,6 +23,8 @@ import { TabButton } from "./components/TabButton";
 import { initDesktopBridge, isElectron, desktopApiKey } from "./services/desktopBridge";
 import { warn } from "./shared/logger";
 import { GalleryImage } from "./types/storage";
+import { listConversations, saveConversation, createConversation } from "./services/chatStorage";
+import type { Conversation, ConversationMessage } from "./types/conversation";
 
 
 type SettingsRecord = { id: string; timestamp: number; value?: Record<string, unknown> };
@@ -94,6 +96,46 @@ export default function App() {
         const latestSettings = settingsItems.find(i => i.id === "app-settings")?.value;
         if (latestSettings)
           dispatch({ type: "SET_SETTINGS", settings: latestSettings });
+
+        // Load conversations (Electron filesystem or IndexedDB fallback)
+        let conversations = await listConversations();
+
+        // Migrate old flat chat history into a default conversation if none exist yet
+        if (conversations.length === 0 && chats.length > 0) {
+          const lastChat = chats.reduce((latest, c) => (c.timestamp > latest.timestamp ? c : latest), chats[0]);
+          const migrated = createConversation(
+            lastChat?.model || state.selectedChatModel,
+            (latestSettings as Record<string, unknown>)?.defaultSystemPrompt as string || ""
+          );
+          migrated.title = "Migrated History";
+          migrated.messages = chats
+            .sort((a, b) => a.timestamp - b.timestamp)
+            .flatMap((c) => {
+              const msgs: ConversationMessage[] = [];
+              if (c.prompt) msgs.push({ id: crypto.randomUUID(), role: "user", content: c.prompt, timestamp: c.timestamp });
+              if (c.response) msgs.push({ id: crypto.randomUUID(), role: "assistant", content: c.response, timestamp: c.timestamp });
+              return msgs;
+            });
+          migrated.updatedAt = Date.now();
+          if (migrated.messages.length > 0) {
+            await saveConversation(migrated);
+            conversations = [migrated];
+            dispatch({
+              type: "ADD_TOAST",
+              toast: {
+                id: crypto.randomUUID(),
+                message: `Migrated ${chats.length} chat record(s) into a new conversation.`,
+                type: "info",
+                duration: 6000,
+              },
+            });
+          }
+        }
+
+        dispatch({ type: "SET_CONVERSATIONS", items: conversations });
+        if (conversations.length > 0 && !state.activeConversationId) {
+          dispatch({ type: "SET_ACTIVE_CONVERSATION", id: conversations[0].id });
+        }
 
         if (totalDecryptFailures > 0) {
           dispatch({

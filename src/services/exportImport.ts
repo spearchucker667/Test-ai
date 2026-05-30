@@ -11,7 +11,7 @@ export const EXPORT_SCHEMA_VERSION = 1;
 export const MAX_IMPORT_JSON_BYTES = VENICE_MAX_BODY_BYTES;
 
 /** Ordered list of stores eligible for export and import. */
-const EXPORT_STORES = ["images", "chats", "settings"] as const;
+const EXPORT_STORES = ["images", "chats", "settings", "conversations"] as const;
 
 /** Per-field upper bounds to reject obviously malformed imports. */
 const MAX_RECORD_ID_LENGTH = 256;
@@ -26,6 +26,7 @@ export interface ExportData {
   images: Record<string, unknown>[];
   chats: Record<string, unknown>[];
   settings: Record<string, unknown>[];
+  conversations: Record<string, unknown>[];
 }
 
 /** Top-level structure of a Venice Forge data export. */
@@ -41,6 +42,7 @@ export interface ImportSummary {
   imagesFound: number;
   chatsFound: number;
   settingsFound: number;
+  conversationsFound: number;
   skippedRecords: number;
 }
 
@@ -115,6 +117,12 @@ function sanitizeRecord(store: ExportStore, value: unknown): Record<string, unkn
     if (!hasPrompt && !hasResponse) return null;
     if (hasPrompt && !isShortString(record.prompt, MAX_TEXT_FIELD_CHARS)) return null;
     if (hasResponse && !isShortString(record.response, MAX_TEXT_FIELD_CHARS)) return null;
+  }
+
+  if (store === "conversations") {
+    if (typeof record.title !== "string") return null;
+    if (!Array.isArray(record.messages)) return null;
+    if (typeof record.model !== "string") return null;
   }
 
   if (store === "settings" && !isPlainObject(record.value)) return null;
@@ -273,6 +281,7 @@ export function validateImportJson(json: string): ValidatedImport {
       imagesFound: payloadData.images.length,
       chatsFound: payloadData.chats.length,
       settingsFound: payloadData.settings.length,
+      conversationsFound: payloadData.conversations.length,
       skippedRecords,
     },
   };

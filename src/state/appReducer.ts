@@ -131,6 +131,8 @@ export const initialState = {
   diagnosticsLog: [] as AppState["diagnosticsLog"],
   gallery: [] as AppState["gallery"],
   chats: [] as AppState["chats"],
+  conversations: [] as AppState["conversations"],
+  activeConversationId: null as AppState["activeConversationId"],
   sourcePanelOpen: true,
   isOnline: typeof navigator !== "undefined" ? navigator.onLine : true,
   modelLoadError: "",
@@ -305,6 +307,12 @@ export const appReducer = produce((draft: AppState, action: AppAction) => {
       break;
     case "SET_CHATS":
       draft.chats = action.items || [];
+      break;
+    case "SET_CONVERSATIONS":
+      draft.conversations = action.items || [];
+      break;
+    case "SET_ACTIVE_CONVERSATION":
+      draft.activeConversationId = action.id;
       break;
     case "TOGGLE_SOURCE_PANEL":
       draft.sourcePanelOpen = !draft.sourcePanelOpen;

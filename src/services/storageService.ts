@@ -7,7 +7,7 @@ import { encryptData, decryptData } from "./cryptoService";
 type StoreName = (typeof STORE_NAMES)[number];
 
 /** List of store names whose records are encrypted before persistence. */
-const ENCRYPTED_STORES: StoreName[] = ["chats", "settings", "images"];
+const ENCRYPTED_STORES: StoreName[] = ["chats", "settings", "images", "conversations"];
 
 export interface GetItemsResult<T = any> {
   items: T[];

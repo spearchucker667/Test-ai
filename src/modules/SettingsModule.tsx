@@ -8,6 +8,7 @@ import { StatusBlock } from "../components/StatusBlock";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { ThemeMaker } from "../components/ThemeMaker";
 import { isElectron, desktopApiKey, desktopApp, desktopFiles, desktopUpdates } from "../services/desktopBridge";
+import { listConversations, saveConversation } from "../services/chatStorage";
 import { createExportPayload, validateImportJson } from "../services/exportImport";
 import { VENICE_MAX_BODY_BYTES } from "../shared/limits";
 import type { ModuleProps } from "../types/app";
@@ -191,13 +192,14 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
 
   async function exportData() {
     try {
-      const [images, chats, settings] = await Promise.all([
+      const [images, chats, settings, conversations] = await Promise.all([
         StorageService.getItems("images"),
         StorageService.getItems("chats"),
         StorageService.getItems("settings"),
+        listConversations(),
       ]);
       const appVersion = await desktopApp.getVersion();
-      const payload = createExportPayload({ images, chats, settings }, appVersion);
+      const payload = createExportPayload({ images, chats, settings, conversations: conversations as unknown as Record<string, unknown>[] }, appVersion);
       const ok = await desktopFiles.exportJson(
         payload,
         `venice-forge-export-${new Date().toISOString().slice(0, 10)}.json`
@@ -212,13 +214,14 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
     try {
       const json = await desktopFiles.importJsonString();
       if (!json) return;
-      const [imagesBefore, chatsBefore, settingsBefore] = await Promise.all([
+      const [imagesBefore, chatsBefore, settingsBefore, conversationsBefore] = await Promise.all([
         StorageService.getItems("images"),
         StorageService.getItems("chats"),
         StorageService.getItems("settings"),
+        listConversations(),
       ]);
       const backup = createExportPayload(
-        { images: imagesBefore, chats: chatsBefore, settings: settingsBefore },
+        { images: imagesBefore, chats: chatsBefore, settings: settingsBefore, conversations: conversationsBefore as unknown as Record<string, unknown>[] },
         await desktopApp.getVersion()
       );
 
@@ -239,22 +242,29 @@ export function SettingsModule({ state, dispatch, apiKeyConfigured, onApiKeyChan
       await Promise.all(payload.data.images.map((img) => StorageService.saveItem("images", img)));
       await Promise.all(payload.data.chats.map((chat) => StorageService.saveItem("chats", chat)));
       await Promise.all(payload.data.settings.map((s) => StorageService.saveItem("settings", s)));
+      await Promise.all(
+        payload.data.conversations.map((conv) =>
+          saveConversation(conv as unknown as import("../types/conversation").Conversation)
+        )
+      );
 
-      const [images, chats, settings] = await Promise.all([
+      const [images, chats, settings, conversations] = await Promise.all([
         StorageService.getItems("images"),
         StorageService.getItems("chats"),
         StorageService.getItems("settings"),
+        listConversations(),
       ]);
       dispatch({ type: "SET_GALLERY", items: images });
       dispatch({ type: "SET_CHATS", items: chats });
+      dispatch({ type: "SET_CONVERSATIONS", items: conversations });
       const importedAppSettings = payload.data.settings.find((entry) => entry.id === "app-settings")?.value;
       const fallbackAppSettings = settings.find((entry) => entry.id === "app-settings")?.value;
       const nextSettings = importedAppSettings || fallbackAppSettings;
       if (nextSettings) dispatch({ type: "SET_SETTINGS", settings: nextSettings });
 
       setStatus(
-        `Imported ${summary.imagesFound} images, ${summary.chatsFound} chats, ${summary.settingsFound} settings. ` +
-          `${summary.skippedRecords} records skipped. Pre-import backup saved (${backup.data.images.length} images, ${backup.data.chats.length} chats).`
+        `Imported ${summary.imagesFound} images, ${summary.chatsFound} chats, ${summary.settingsFound} settings, ${summary.conversationsFound} conversations. ` +
+          `${summary.skippedRecords} records skipped. Pre-import backup saved (${backup.data.images.length} images, ${backup.data.chats.length} chats, ${backup.data.conversations.length} conversations).`
       );
     } catch (err) {
       setStatusError(err instanceof Error ? err.message : "Import failed.");

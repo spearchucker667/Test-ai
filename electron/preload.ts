@@ -136,6 +136,25 @@ const veniceForge = {
     },
   },
 
+  chat: {
+    /** Lists all persisted conversations. */
+    list(): Promise<{ ok: boolean; conversations: import("../src/types/conversation").Conversation[]; error?: string }> {
+      return ipcRenderer.invoke("chat:list");
+    },
+    /** Retrieves a single conversation by id. */
+    get(id: string): Promise<{ ok: boolean; conversation: import("../src/types/conversation").Conversation | null; error?: string }> {
+      return ipcRenderer.invoke("chat:get", id);
+    },
+    /** Saves a conversation atomically to disk. */
+    save(conversation: import("../src/types/conversation").Conversation): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat:save", { conversation });
+    },
+    /** Deletes a conversation by id. */
+    delete(id: string): Promise<{ ok: boolean; error?: string }> {
+      return ipcRenderer.invoke("chat:delete", id);
+    },
+  },
+
   updates: {
     checkForUpdates(): Promise<{ ok: boolean; version?: string; error?: string }> {
       return ipcRenderer.invoke("app:checkForUpdates");

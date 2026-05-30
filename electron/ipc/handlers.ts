@@ -12,10 +12,17 @@ import {
 } from "../services/secureStore";
 import { getLastApiError, getLogsDir, logError, openLogsFolder } from "../services/logger";
 import { abortVeniceRequest, performVeniceRequest, readResponseError } from "../services/veniceClient";
+import {
+  deleteConversation,
+  getConversation,
+  listConversations,
+  saveConversation,
+} from "../services/chatStorage";
 import { validateApiKeyInput, validateVeniceIpcRequest } from "./validation";
 import { redactErrorMessage } from "../../src/services/redaction";
 import { registerUpdateHandlers } from "./updates";
 import { VENICE_MAX_BODY_BYTES } from "../../src/shared/limits";
+import type { Conversation } from "../../src/types/conversation";
 
 /** Maximum size in bytes for JSON import and export files. */
 const MAX_JSON_FILE_BYTES = VENICE_MAX_BODY_BYTES;
@@ -171,6 +178,62 @@ export function registerIpcHandlers(): void {
       return { ok: true, canceled: false, data };
     } catch (err) {
       return { canceled: false, error: redactErrorMessage(err) };
+    }
+  });
+
+  ipcMain.handle("chat:list", async () => {
+    try {
+      const conversations = await listConversations();
+      return { ok: true, conversations };
+    } catch (err) {
+      const message = redactErrorMessage(err);
+      logError("chat:list failed", message);
+      return { ok: false, error: message, conversations: [] };
+    }
+  });
+
+  ipcMain.handle("chat:get", async (_event, id: unknown) => {
+    try {
+      if (typeof id !== "string" || id.length > 128) {
+        return { ok: false, error: "Invalid conversation id", conversation: null };
+      }
+      const conversation = await getConversation(id);
+      return { ok: true, conversation };
+    } catch (err) {
+      const message = redactErrorMessage(err);
+      logError("chat:get failed", message);
+      return { ok: false, error: message, conversation: null };
+    }
+  });
+
+  ipcMain.handle("chat:save", async (_event, payload: unknown) => {
+    try {
+      if (!payload || typeof payload !== "object") {
+        return { ok: false, error: "Invalid payload" };
+      }
+      const p = payload as Record<string, unknown>;
+      if (!p.conversation || typeof p.conversation !== "object") {
+        return { ok: false, error: "Missing conversation" };
+      }
+      const result = await saveConversation(p.conversation as Conversation);
+      return result;
+    } catch (err) {
+      const message = redactErrorMessage(err);
+      logError("chat:save failed", message);
+      return { ok: false, error: message };
+    }
+  });
+
+  ipcMain.handle("chat:delete", async (_event, id: unknown) => {
+    try {
+      if (typeof id !== "string" || id.length > 128) {
+        return { ok: false, error: "Invalid conversation id" };
+      }
+      return await deleteConversation(id);
+    } catch (err) {
+      const message = redactErrorMessage(err);
+      logError("chat:delete failed", message);
+      return { ok: false, error: message };
     }
   });
 }

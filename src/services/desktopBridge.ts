@@ -3,6 +3,7 @@
 // Code Owner: fayeblade (@spearchucker667)
 import "../types/desktop";
 import type { VeniceForgeDiagnostics, VeniceForgeRequest, VeniceForgeResponse } from "../types/desktop";
+import type { Conversation } from "../types/conversation";
 import { veniceFetch } from "./veniceClient";
 
 /**
@@ -224,6 +225,26 @@ export const desktopFiles = {
     const result = await window.veniceForge!.files.loadJsonFile();
     if (result.canceled || !result.data) return null;
     return result.data;
+  },
+};
+
+/** Handles chat history persistence via the main-process filesystem store. */
+export const desktopChat = {
+  async list(): Promise<{ ok: boolean; conversations: Conversation[]; error?: string }> {
+    if (!isElectron()) return { ok: false, conversations: [], error: "Chat filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.chat.list();
+  },
+  async get(id: string): Promise<{ ok: boolean; conversation: Conversation | null; error?: string }> {
+    if (!isElectron()) return { ok: false, conversation: null, error: "Chat filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.chat.get(id);
+  },
+  async save(conversation: Conversation): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Chat filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.chat.save(conversation);
+  },
+  async delete(id: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isElectron()) return { ok: false, error: "Chat filesystem storage is only available in desktop mode." };
+    return window.veniceForge!.chat.delete(id);
   },
 };
 

@@ -1,6 +1,7 @@
 /** @fileoverview Type definitions for the Electron preload bridge API. */
 
 import type { UpdateInfo, ProgressInfo } from "electron-updater";
+import type { Conversation } from "./conversation";
 
 /** Manages the Venice API key in secure OS-level storage. */
 export interface VeniceForgeApiKey {
@@ -81,6 +82,14 @@ export interface VeniceForgeUpdates {
   onUpdateError(callback: (error: string) => void): () => void;
 }
 
+/** Exposes chat history persistence via the main-process filesystem store. */
+export interface VeniceForgeChat {
+  list(): Promise<{ ok: boolean; conversations: Conversation[]; error?: string }>;
+  get(id: string): Promise<{ ok: boolean; conversation: Conversation | null; error?: string }>;
+  save(conversation: Conversation): Promise<{ ok: boolean; error?: string }>;
+  delete(id: string): Promise<{ ok: boolean; error?: string }>;
+}
+
 /** Root interface for the Venice Forge preload bridge exposed on the window object. */
 export interface VeniceForge {
   readonly isDesktop: true;
@@ -88,6 +97,7 @@ export interface VeniceForge {
   apiKey: VeniceForgeApiKey;
   app: VeniceForgeApp;
   files: VeniceForgeFiles;
+  chat: VeniceForgeChat;
   updates: VeniceForgeUpdates;
 }
 

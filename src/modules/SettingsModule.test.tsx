@@ -19,16 +19,21 @@ vi.mock("../services/storageService", () => ({
   },
 }));
 
+vi.mock("../services/chatStorage", () => ({
+  listConversations: vi.fn().mockResolvedValue([]),
+  saveConversation: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock("../services/exportImport", () => ({
   createExportPayload: vi.fn().mockReturnValue({
     version: 1,
     exportedAt: "2026-01-01T00:00:00.000Z",
     appVersion: "1.0.0",
-    data: { images: [], chats: [], settings: [] },
+    data: { images: [], chats: [], settings: [], conversations: [] },
   }),
   validateImportJson: vi.fn().mockReturnValue({
-    payload: { data: { images: [], chats: [], settings: [] } },
-    summary: { imagesFound: 0, chatsFound: 0, settingsFound: 0, skippedRecords: 0 },
+    payload: { data: { images: [], chats: [], settings: [], conversations: [] } },
+    summary: { imagesFound: 0, chatsFound: 0, settingsFound: 0, conversationsFound: 0, skippedRecords: 0 },
   }),
 }));
 
@@ -213,9 +218,10 @@ describe("SettingsModule", () => {
               value: { defaultSystemPrompt: "imported prompt", webSearch: "off" },
             },
           ],
+          conversations: [],
         },
       } as any,
-      summary: { imagesFound: 0, chatsFound: 0, settingsFound: 1, skippedRecords: 0 },
+      summary: { imagesFound: 0, chatsFound: 0, settingsFound: 1, conversationsFound: 0, skippedRecords: 0 },
     });
     vi.mocked(StorageService.getItems)
       .mockResolvedValueOnce([]) // images before backup

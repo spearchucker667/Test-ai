@@ -46,6 +46,7 @@ describe("export/import schema validation", () => {
       imagesFound: 1,
       chatsFound: 1,
       settingsFound: 1,
+      conversationsFound: 0,
       skippedRecords: 0,
     });
     expect(JSON.stringify(result.payload)).not.toContain("secret");
@@ -158,6 +159,7 @@ describe("export/import schema validation", () => {
       imagesFound: 2,
       chatsFound: 1,
       settingsFound: 1,
+      conversationsFound: 0,
       skippedRecords: 2,
     });
     const repaired = result.payload.data.images.find((img) => img.id === "img-nan");
