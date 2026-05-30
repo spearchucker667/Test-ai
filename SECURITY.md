@@ -50,6 +50,25 @@ External URLs opened via `shell.openExternal` are validated by
 `electron/utils/urlSecurity.ts`: only `https:` with public routable hostnames
 is allowed. RFC 1918 and loopback addresses are blocked.
 
+## API Key Storage
+
+Venice Forge stores your API key using OS-provided encryption where available:
+- **Windows**: `safeStorage` (DPAPI)
+- **macOS**: `safeStorage` (Keychain)
+
+For Windows and macOS, there is **no plaintext fallback**. The application will refuse to save the API key if OS-level encryption is unavailable. 
+For Linux and other platforms, a plaintext fallback may be permitted if the `VENICE_FORGE_ALLOW_PLAINTEXT_KEY_STORAGE=true` environment variable is explicitly set.
+
+## Not Protected Against
+
+The security model does **not** protect against the following:
+- Unsigned Windows SmartScreen warnings.
+- Unsigned macOS Gatekeeper warnings.
+- Local malware or debuggers running under the same OS user account.
+- Keychain/session compromise if the OS user is compromised.
+
+**Clarification**: macOS Gatekeeper and quarantine flags are mechanisms for distribution trust and execution prevention. They are not app data encryption mechanisms.
+
 ## Code & Dependency Auditing
 
 Dependencies are audited with `npm audit` before each release. To run a

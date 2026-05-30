@@ -225,3 +225,7 @@ No critical issues found.
 - **[M-005]** Extractor logic for `Buffer` in `server.ts` was fixed to dynamically pull field names based on the endpoint, successfully catching `negative_prompt` bypassing in image endpoints.
 - **[M-006]** Clarified JSDoc requiring callers of `assessChildExploitationSafety` to run `recordDecision`.
 - **[L-002]** Added test verifying that `FUZZY_ALLOWLIST` doesn't intersect with `CSAM_GENRE_LABELS`.
+
+## Deferred Dual-Platform Improvements
+- [ ] Implement Apple Notarization auto-submission in `macos-release.yml` for CI pipelines.
+- [ ] Add explicit auto-updater UI for macOS.

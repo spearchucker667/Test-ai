@@ -239,7 +239,7 @@ See [docs/LEGAL.md](docs/LEGAL.md) for the public-readiness legal notes, tradema
 |---------|-----|
 | Missing icon | `npm run generate:icon` then `npm run verify:icon` |
 | Packaging failure | `npm run clean && npm install && npm run dist:win` |
-| SmartScreen warning | Expected for unsigned local builds; see [docs/RELEASE/release.md](docs/RELEASE/release.md) for signing |
+| SmartScreen/Gatekeeper warning | Expected for unsigned local builds; see [docs/RELEASE/release.md](docs/RELEASE/release.md) for signing |
 | No API key prompt at launch | Open **Config**, save a key, then test connection |
 | Chat history not loading | Check the chat-history folder (see Storage above). Corrupted files are renamed to `.backup-{timestamp}` and skipped. |
 | `400` on chat/image | Usually a request schema mismatch — ensure the model ID is valid and all API parameters are correct strings |

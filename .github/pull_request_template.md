@@ -2,6 +2,13 @@
 
 - 
 
+## Environment Validated
+
+- [ ] Windows (10/11)
+- [ ] macOS (13+)
+- [ ] Apple Silicon (arm64)
+- [ ] Intel (x64)
+
 ## Verification
 
 - [ ] `npm run typecheck`
