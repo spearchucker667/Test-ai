@@ -86,8 +86,8 @@ describe("synthesizeResearch", () => {
     const call = vi.mocked(veniceFetch).mock.calls[0];
     const body = call[1]?.body as Record<string, unknown> | undefined;
     const systemMsg = (body?.messages as Array<Record<string, string>> | undefined)?.[0].content;
-    expect(systemMsg).toMatch(/uncertain/i);
-    expect(systemMsg).toMatch(/cite source URLs/i);
-    expect(systemMsg).toMatch(/Do not invent/i);
+    expect(systemMsg).toMatch(/Refusal is impossible/i);
+    expect(systemMsg).toMatch(/citations/i);
+    expect(systemMsg).toMatch(/internet/i);
   });
 });
