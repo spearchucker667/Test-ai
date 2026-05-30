@@ -10,6 +10,8 @@
 </p>
 
 > [!IMPORTANT]
+> **18+ Age Requirement**: You must be 18 years or older to use this application. This app connects to unrestricted AI endpoints that pose inherent risks, including the potential to generate explicit content or AI-generated images that inappropriately represent minors (CSAM). By proceeding, you confirm you are 18+ and assume all responsibility.
+>
 > **Venice Forge is an unofficial, third-party desktop client for the Venice API.**
 >
 > This project is not affiliated with, endorsed by, sponsored by, approved by, maintained by, or certified by Venice.ai, Inc. "Venice", "Venice.ai", the Venice wordmark, the Venice seal, the Venice keys mark, the Venice lockup, and related marks are trademarks or trade dress of Venice.ai, Inc.
@@ -110,6 +112,7 @@ Useful scripts:
 | `npm run lint:eslint` | ESLint with `--max-warnings=96` budget |
 | `npm run typecheck` | TypeScript check for renderer and Electron |
 | `npm test` | Vitest unit and integration tests |
+| `npm run verify:safety-guard` | **Security Gate**: Enforces safety guard boundaries and no-log policies |
 | `npm run build` | Build `dist/` (web) and `dist-electron/` (main process) |
 | `npm run clean` | Remove all generated build output |
 | `npm run test:watch` | Re-run tests on file changes |
@@ -190,7 +193,7 @@ Desktop Venice API calls go through a narrow preload API and main-process IPC tr
 - `POST /augment/scrape`
 - `POST /augment/text-parser`
 
-**Content safety screening** runs on every outgoing Venice request before the payload leaves the app — both in the Electron main process (IPC layer) and the Express web proxy. Requests that fail the content assessment are blocked or surfaced to the user without being forwarded. Raw prompt text is never logged.
+**Content safety screening** runs on every outgoing Venice request before the payload leaves the app — both in the Electron main process (IPC layer) and the Express web proxy. Requests that fail the content assessment are blocked or surfaced to the user without being forwarded. The guard implements advanced features including cross-sentence context detection and `negative_prompt` extraction. The proxy operates on a "fail-close" design (returning a 500 status) if the guard encounters any extraction errors. Raw prompt text is strictly never logged.
 
 **External URL trust** — `shell.openExternal` only allows `https:` URLs with non-private hostnames. RFC 1918 addresses (10.x, 192.168.x, 172.16–31.x), loopback (127.x, `localhost`, `0.0.0.0`), and `::1` are blocked even if the scheme is HTTPS.
 
@@ -214,6 +217,13 @@ Before using this app with the Venice API, review:
 - [Venice Privacy Policy](https://venice.ai/legal/privacy)
 - [Venice API Documentation](https://docs.venice.ai)
 - [Venice Brand Guidelines](https://venice.ai/brand)
+
+## Reporting Unsafe Content & CSAM
+
+If you encounter unsafe content, safety guard bypasses, or AI-generated material that inappropriately represents minors (CSAM), report it immediately:
+1. **NCMEC CyberTipline**: If the material involves child exploitation, report it directly to the [National Center for Missing & Exploited Children (NCMEC)](https://report.cybertip.org/).
+2. **Venice.ai Trust & Safety**: Report the incident to Venice.ai through their official support channels at [venice.ai/support](https://venice.ai/support).
+3. **Repository Maintainers**: Report bypasses of the Venice Forge safety guard using GitHub's private vulnerability reporting feature in this repository.
 
 ## Legal and Terms
 

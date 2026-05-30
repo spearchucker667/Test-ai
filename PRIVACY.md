@@ -1,5 +1,7 @@
 # Venice Forge Privacy & Security Model
 
+**Age Requirement**: Use of this application is strictly limited to individuals 18 years of age and older. The privacy terms and data collection boundaries outlined here apply solely to adult users.
+
 Venice Forge is designed with a strict "privacy-by-default" and "offline-first" architecture. Your data stays on your machine until you explicitly send it to the Venice API.
 
 ## API Key Security
@@ -15,7 +17,7 @@ Venice Forge is designed with a strict "privacy-by-default" and "offline-first" 
 ## Network Architecture
 - Venice Forge restricts all outgoing network requests to a strict allowlist of Venice API endpoints.
 - Path traversal and malicious endpoint injections are structurally prevented by both the Electron main process and the Express proxy layer.
-- **Content safety screening** is applied to every outgoing Venice request before the payload is forwarded. Requests that fail the content assessment are blocked at the IPC or proxy boundary and never leave the app. Raw prompt text is never logged or stored by the safety system — only a coarse non-identifying hash is retained for audit counters.
+- **Content safety screening** is applied to every outgoing Venice request before the payload is forwarded. Requests that fail the content assessment are blocked at the IPC or proxy boundary and never leave the app. The safety system employs advanced features like cross-sentence detection and `negative_prompt` extraction, and fails closed via a 500 status if extraction encounters an error. Raw prompt text is never logged or stored by the safety system — only a coarse non-identifying hash is retained for audit counters.
 - **External URL guard** — `shell.openExternal` only allows `https:` URLs with public routable hostnames. RFC 1918 and loopback addresses are blocked.
 
 ## Export and Import

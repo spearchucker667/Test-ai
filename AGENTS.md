@@ -116,6 +116,7 @@ Artifacts are written to `release/`. Windows produces NSIS installers and portab
 | `npm run build:electron` | Compile Electron main process TypeScript |
 | `npm run build:server` | Bundle `server.ts` to `dist/server.cjs` via esbuild |
 | `npm run clean` | Remove `dist/`, `dist-electron/`, `release/` |
+| `npm run verify:safety-guard` | Run the script to enforce the safety guard boundaries and no-log policies |
 | `npm run test:watch` | Re-run tests on file changes |
 | `npm run test:coverage` | Run tests with v8 coverage report |
 | `npm run smoke:electron` | Run Electron smoke tests |
@@ -172,6 +173,7 @@ Artifacts are written to `release/`. Windows produces NSIS installers and portab
 
 ```bash
 npm test                    # Run all tests once
+npm run verify:safety-guard # Mandatory check for safety guard compliance
 npm run test:watch          # Watch mode
 npm run test:coverage       # With coverage report
 npm run smoke:electron      # Electron smoke tests in tests/smoke/
@@ -189,10 +191,13 @@ This is a security-sensitive project. The following rules are non-negotiable.
 - Never expose keys in test fixtures, screenshots, or logs.
 
 ### Content Safety Guard
-- **Every new prompt-sending path must call `assessChildExploitationSafety()`** before forwarding to Venice.
-- Do not bypass the guard. Do not log raw prompt text.
+- **Every new prompt-sending path must call `assessChildExploitationSafety()` and `recordDecision()`** before forwarding to Venice.
+- Do not bypass the guard. Be aware that the guard actively screens `negative_prompt` fields and analyzes cross-sentence contexts. Do not log raw prompt text.
 - Safety tests must use synthetic/redacted fixtures only.
-- The guard runs at every enforcement boundary: renderer (`veniceClient.ts`), Electron IPC handlers, and Express web proxy.
+- The guard runs at every enforcement boundary: renderer (`veniceClient.ts`), Electron IPC handlers, and Express web proxy. The proxy uses a "fail-close" design (500 status) on extraction errors.
+
+### Security Audit (May 2026)
+This project underwent a comprehensive security audit of its safety guard capabilities in May 2026. The `verify-safety-guard.cjs` script was introduced as a mandatory gate to ensure adherence to 18+ legal constraints and robust CSAM protection.
 
 ### Allowed Venice Endpoints
 The IPC validator and web proxy share an allowlist in `src/shared/validation.ts`:

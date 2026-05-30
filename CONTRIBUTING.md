@@ -12,7 +12,7 @@ Please read and follow our [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - Do not commit secrets, `.env` files, generated release artifacts, or local logs.
 - Keep README, [docs/ABOUT.md](docs/ABOUT.md), [SECURITY.md](SECURITY.md), [docs/RELEASE/release.md](docs/RELEASE/release.md), and [docs/LEGAL.md](docs/LEGAL.md) current when behavior, packaging, or legal assumptions change.
 - Treat all Venice API keys as secrets. Never expose them to renderer code, frontend bundles, issue screenshots, or test fixtures.
-- Every new prompt-sending path **must** call `assessChildExploitationSafety()` before forwarding to Venice. Do not bypass the guard. Do not log raw prompt text. Safety tests must use synthetic/redacted fixtures only.
+- Every new prompt-sending path **must** call `assessChildExploitationSafety()` and `recordDecision()` before forwarding to Venice. Do not bypass the guard. Be aware that the guard actively screens `negative_prompt` fields and analyzes cross-sentence contexts. Do not log raw prompt text. Safety tests must use synthetic/redacted fixtures only.
 
 ## Getting Started
 
@@ -59,8 +59,9 @@ npm run dev:web
 npm run lint:eslint
 npm run typecheck
 
-# Run tests
+# Run tests and security guard verification
 npm test
+npm run verify:safety-guard
 
 # Build all targets
 npm run build
@@ -89,13 +90,18 @@ All commands and validations must pass before opening a PR. Note that Windows re
 - CSS styling relies on Tailwind v4 utility classes inline with JSX, following the "Premium Dark Glass" theme.
 - Keep changes minimal and focused.
 
-## Security
+## Security & Reporting
 
 If you discover a security vulnerability, **do not open a public issue**. Instead:
 
 1. Follow [SECURITY.md](SECURITY.md).
 2. Request a private maintainer discussion before sharing exploit details.
 3. Never post API keys, bearer tokens, `.env` contents, certificates, or private logs.
+
+If you encounter unsafe content, safety guard bypasses, or AI-generated material that inappropriately represents minors (CSAM) during development:
+- **Do not share the explicit material** in pull requests, issues, or directly with maintainers.
+- **Report CSAM** immediately to the [NCMEC CyberTipline](https://report.cybertip.org/) and [Venice.ai Trust & Safety](https://venice.ai/support).
+- **Report the bypass mechanism** using GitHub private vulnerability reporting.
 
 See [SECURITY.md](SECURITY.md) for the full security model.
 

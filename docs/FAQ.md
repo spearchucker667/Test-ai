@@ -36,6 +36,7 @@ npm run dev:web        # Web proxy mode
 npm run lint:eslint    # ESLint with --max-warnings=96
 npm run typecheck      # TypeScript for renderer + Electron
 npm test               # Vitest unit and integration tests
+npm run verify:safety-guard # Security guard enforcement check
 npm run build          # Build dist/ and dist-electron/
 ```
 
@@ -65,7 +66,16 @@ Set `VENICE_FORGE_DEBUG_DEVTOOLS=true` in your environment before launching. Onl
 No. Venice Forge does not track users, log prompts, or monitor API key usage.
 
 ### Does Venice Forge have content moderation?
-Yes. Every outgoing Venice API request is screened by an on-device content safety guard before the payload is forwarded. Requests that fail the assessment are blocked at the IPC or proxy boundary and never reach Venice. Raw prompt text is **never** logged by the safety system — only a coarse non-identifying hash is kept for local audit counters.
+Yes. Every outgoing Venice API request is screened by an on-device content safety guard before the payload is forwarded. The guard enforces cross-sentence context boundaries and `negative_prompt` extraction. Requests that fail the assessment are blocked at the IPC or proxy boundary and never reach Venice. The proxy uses a "fail-close" design (500 status) if any guard extraction fails. Raw prompt text is **never** logged by the safety system — only a coarse non-identifying hash is kept for local audit counters.
+
+### Is there an age restriction for using Venice Forge?
+Yes, **users must be 18 years or older**. Generative AI models can produce explicit or sensitive material, and there is an inherent legal and ethical risk of generating AI imagery that may inappropriately represent minors (CSAM). By using this software, users acknowledge this risk and assume all liability.
+
+### How do I report a safety bypass or unsafe content (CSAM)?
+If you generate or encounter AI material that constitutes child exploitation (CSAM):
+1. Report it to the **National Center for Missing & Exploited Children (NCMEC)** at [report.cybertip.org](https://report.cybertip.org/).
+2. Report the incident to the official **Venice Trust & Safety** team at [venice.ai/support](https://venice.ai/support).
+3. Do **not** share explicit material on GitHub. If you find a way to bypass the application's safety guard, use GitHub's private vulnerability reporting feature to securely alert the repository maintainers.
 
 ---
 

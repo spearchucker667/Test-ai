@@ -24,18 +24,33 @@ disclosure before any public details are posted.
 Only the latest release tag is actively maintained. Older versions do not
 receive security patches.
 
+## Reporting Unsafe Content / CSAM
+
+If you encounter unsafe content, safety guard bypasses, or AI-generated material that inappropriately represents minors (CSAM), report it immediately:
+1. **NCMEC CyberTipline**: If the material involves child exploitation, report it directly to the [National Center for Missing & Exploited Children (NCMEC)](https://report.cybertip.org/).
+2. **Venice.ai Trust & Safety**: Report the incident to Venice.ai through their official support channels at [venice.ai/support](https://venice.ai/support).
+3. **Repository Maintainers**: Report bypasses of the Venice Forge safety guard using GitHub's private vulnerability reporting feature in this repository.
+
+## 18+ Age Requirement & Inherent Risks
+
+**Venice Forge strictly requires users to be 18 years or older.**
+The application connects to unrestricted AI endpoints that may generate explicit or sensitive content. Due to the inherent risk of producing AI-generated images that may inappropriately represent minors (CSAM), use of this software by minors is strictly prohibited. Users assume all responsibility for the generated content.
+
 ## Content Safety
 
 All outgoing Venice API requests are screened by a content safety guard
 (`src/shared/safety/childExploitationGuard.ts`) before the payload is
 forwarded. This runs at every enforcement boundary — Electron IPC and Express
-proxy. Raw prompt text is never logged by the safety system.
+proxy. The guard implements advanced features such as cross-sentence context
+detection and `negative_prompt` extraction. The proxy operates on a "fail-close"
+design (returning a 500 status) if the guard encounters any extraction errors.
+Raw prompt text is never logged by the safety system.
 
 External URLs opened via `shell.openExternal` are validated by
 `electron/utils/urlSecurity.ts`: only `https:` with public routable hostnames
 is allowed. RFC 1918 and loopback addresses are blocked.
 
-## Dependency Auditing
+## Code & Dependency Auditing
 
 Dependencies are audited with `npm audit` before each release. To run a
 manual audit:
@@ -45,3 +60,10 @@ npm audit
 ```
 
 A clean audit (`0 vulnerabilities`) is a release gate requirement.
+
+Furthermore, safety-guard enforcement is actively verified by a dedicated
+script that ensures boundary completeness and strict no-logging rules:
+```bash
+npm run verify:safety-guard
+```
+This is a mandatory release and commit security gate.

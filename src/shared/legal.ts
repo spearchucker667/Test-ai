@@ -38,7 +38,10 @@ export const OFFICIAL_LINKS = {
  */
 export const FIRST_RUN_COPY = {
   title: "Welcome to Venice Forge",
-  body: `${FULL_UNOFFICIAL_NOTICE}
+  body: `**18+ Age Requirement & Content Warning**
+You must be 18 years or older to use this application. This app connects to unrestricted AI endpoints that may generate explicit or sensitive content, including the inherent risk of producing AI-generated images that may inappropriately represent minors (CSAM). By proceeding, you confirm you are 18+ and assume all responsibility for the generated content.
+
+${FULL_UNOFFICIAL_NOTICE}
 
 ${TRADEMARK_NOTICE}
 
@@ -47,7 +50,7 @@ Any Venice names or brand assets shown here are used only to identify compatibil
 ${NO_LEGAL_ADVICE_NOTICE}
 
 ${NO_CRITICAL_USE_NOTICE}`,
-  agreeLabel: "I understand",
+  agreeLabel: "I understand and am 18+",
   docsLabel: "View official Venice docs",
 } as const;
 

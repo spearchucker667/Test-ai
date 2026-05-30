@@ -17,6 +17,7 @@ Current public readiness status:
 
 ## Goals
 
+- **18+ Age Restriction.** Use of the application is strictly restricted to adults aged 18 and older, acknowledging the inherent risks of unfiltered AI image generation (including CSAM).
 - **Privacy by default.** The Venice API is privacy-preserving by design. Venice Forge keeps API keys out of the renderer process, never persists keys in plaintext, and never exports them.
 - **Offline-first storage.** Images, chat history, and settings live in browser IndexedDB — no cloud sync, no telemetry.
 - **Practical security.** The Electron architecture enforces strict IPC validation, a narrow preload surface, and a restrictive CSP. The web proxy enforces the same endpoint allowlist plus rate limiting and security headers.
@@ -53,7 +54,7 @@ Web mode (development only):
 | State | useReducer + Immer | Centralised app state |
 | Storage | IndexedDB (via `StorageService`) | `images`, legacy `chats`, `settings`, `conversations` — all encrypted at rest (AES-GCM); `diagnostics` stored unencrypted (timing/status only, no raw prompts) |
 | Chat storage | Electron main-process filesystem (`chat-history/*.json`) | Conversation persistence with atomic writes and corruption recovery |
-| Content safety | `src/shared/safety/childExploitationGuard.ts` | Screens every outgoing Venice request at IPC and proxy boundary; returns `SafetyGuardDecision`; never logs raw prompt text |
+| Content safety | `src/shared/safety/childExploitationGuard.ts` | Screens every outgoing Venice request at IPC and proxy boundary; evaluates `negative_prompt` and cross-sentence context; fails closed (500) on extraction errors; returns `SafetyGuardDecision`; never logs raw prompt text |
 
 | Secure storage | Electron `safeStorage` | API key (encrypted) |
 | IPC bridge | Electron preload + `ipcMain` | Renderer ↔ main transport |
